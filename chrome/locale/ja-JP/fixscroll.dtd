@@ -1,0 +1,16 @@
+<!ENTITY fixscroll.overlay.toollabel "FixScroll Button">
+<!ENTITY fixscroll.overlay.tooltip "Toggle FixScroll Mode">
+
+<!ENTITY fixscroll.option.default "常にFixscrollモードにする">
+<!ENTITY fixscroll.option.duplicateHeight "重複エリアの高さ(pixel)">
+<!ENTITY fixscroll.option.cursor.value "キーボードのカーソルキーでの移動量(pixel)">
+<!ENTITY fixscroll.option.cursor.default "※0の場合はdefault (fontsize)">
+<!ENTITY fixscroll.option.page.value "キーボードのPageUp,PageDownでの移動量(pixel)">
+<!ENTITY fixscroll.option.page.default "※0の場合はdefault (表示ページの半分)">
+<!ENTITY fixscroll.option.title "FixScroll 設定">
+
+<!ENTITY fixscroll.intro.title "FixScroll スタートアップ ウィザード">
+<!ENTITY fixscroll.intro.notes "FixScroll スタートアップ ウィザードにようこそ。 この拡張機能の簡単な構成をすることができます。">
+<!ENTITY fixscroll.intro.addTB "FixScroll を切り替えるボタンを、ナビゲーションツールバーに追加する">
+<!ENTITY fixscroll.intro.openprefs "このウィザードが終了した後に、メインの設定ダイアログを開きます">
+<!ENTITY fixscroll.intro.end "終了">

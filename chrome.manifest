@@ -1,0 +1,7 @@
+content   fixscroll                 chrome/content/
+skin      fixscroll   classic/1.0   chrome/skin/
+locale    fixscroll   en-US         chrome/locale/en-US/
+locale    fixscroll   ja-JP         chrome/locale/ja-JP/
+
+overlay   chrome://browser/content/browser.xul   chrome://fixscroll/content/overlay.xul
+style chrome://global/content/customizeToolbar.xul chrome://fixscroll/skin/overlay.css

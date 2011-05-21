@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE prefwindow SYSTEM "chrome://fixscroll/locale/fixscroll.dtd">
+
+<?xml-stylesheet href="chrome://global/skin/" type="text/css"?>
+
+<prefwindow id="fixscroll-preferences" xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul" title="&fixscroll.option.title;">
+  <prefpane id="panefixscroll" label="&fixscroll.option.title;">
+    <preferences>
+      <preference id="defaultOn" name="extensions.fixscroll.defaultOn" type="bool"/>
+      <preference id="duplicateHeight" name="extensions.fixscroll.duplicateHeight" type="int"/>
+      <preference id="cursor" name="extensions.fixscroll.kb.cursor" type="int"/>
+      <preference id="pageUpDown" name="extensions.fixscroll.kb.pageUpDown" type="int"/>
+    </preferences>
+    <vbox>
+      <checkbox id="chbDefaultOn" preference="defaultOn" label="&fixscroll.option.default;" />
+      <hbox align="center">
+        <label control="duplicateHeight">&fixscroll.option.duplicateHeight;</label>
+        <textbox id="textDuplicateHeight" preference="duplicateHeight" type="number" max="999" min="0" size="3" />
+      </hbox>
+      <hbox align="center">
+        <label control="cursor">&fixscroll.option.cursor.value;</label>
+        <textbox id="textCursor" preference="cursor" type="number" max="999" min="0" size="3" />
+      </hbox>
+      <hbox>
+        <spacer width="10"/><label>&fixscroll.option.cursor.default;</label>
+      </hbox>
+      <hbox align="center">
+        <label control="pageUpDown">&fixscroll.option.page.value;</label>
+        <textbox id="textPageUpDown" preference="pageUpDown" type="number" max="9999" min="0" size="4" />
+      </hbox>
+      <hbox>
+        <spacer width="10"/><label>&fixscroll.option.page.default;</label>
+      </hbox>
+    </vbox>
+  </prefpane>
+</prefwindow>

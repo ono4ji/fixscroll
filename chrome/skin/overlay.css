@@ -1,0 +1,35 @@
+@namespace url("http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul");
+
+#fixscroll-toolbar-button
+{
+  list-style-image: url("chrome://fixscroll/skin/toolbar-button.png");
+  -moz-image-region: rect(0px 24px 24px 0px);
+}
+#fixscroll-toolbar-button:hover
+{
+  -moz-image-region: rect(24px 24px 48px  0px);
+}
+[iconsize="small"] #fixscroll-toolbar-button
+{
+  -moz-image-region: rect( 0px 40px 16px 24px);
+}
+[iconsize="small"] #fixscroll-toolbar-button:hover
+{
+  -moz-image-region: rect(24px 40px 40px 24px);
+}
+#fixs-toolbar-button[fixscrollOn="false"]
+{
+  -moz-image-region: rect(0px 64px 24px 40px);
+}
+#fixsroll-toolbar-button[fixscrollOn="false"]:hover
+{
+  -moz-image-region: rect(24px 64px 48px  40px);
+}
+[iconsize="small"] #fixscroll-toolbar-button[fixscrollOn="false"]
+{
+  -moz-image-region: rect( 0px 80px 16px 64px);
+}
+[iconsize="small"] #fixscroll-toolbar-button[fixscrollOn="false"]:hover
+{
+  -moz-image-region: rect(24px 80px 40px 64px);
+}

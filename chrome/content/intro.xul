@@ -1,0 +1,75 @@
+<?xml version="1.0"?>
+
+<!DOCTYPE window SYSTEM "chrome://fixscroll/locale/fixscroll.dtd">
+
+<?xml-stylesheet href="chrome://global/skin/" type="text/css"?>
+<?xml-stylesheet href="chrome://fixscroll/skin/" type="text/css"?>
+
+<dialog id="fixscrollIntro"
+	xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
+	xmlns:html="http://www.w3.org/1999/xhtml"
+	title="&fixscroll.intro.title;"
+	buttons="accept, cancel"
+	buttonlabelaccept="&fixscroll.intro.end;"
+	onload="init();"
+	ondialogaccept="return go();"
+	persist="screenX screenY"
+	style="max-width: 23em; height: 10em;">
+
+<stringbundleset id="stringbundleset">
+	<stringbundle id="bundle_fixscroll" src="chrome://fixscroll/locale/fixscroll.properties"/>
+</stringbundleset>
+
+<script type="application/x-javascript">
+<![CDATA[
+  
+function init() 
+{	
+	var win = mostRecentWindow("navigator:browser");
+	if (!win) return;
+	var bar = win.document.getElementById("nav-bar");
+	if (!bar) return;
+	if (bar.currentSet.indexOf("fixscroll-toolbar-button")!=-1) {
+		document.getElementById("addTB").setAttribute("checked","false");
+		document.getElementById("addTB").setAttribute("disabled","true");
+	}
+}
+
+function mostRecentWindow(winType) {
+	var WindowMediator = Components.classes['@mozilla.org/appshell/window-mediator;1'].
+				getService(Components.interfaces.nsIWindowMediator);
+	return WindowMediator.getMostRecentWindow(winType);
+}
+	
+function go() 
+{
+	// add tb toggle
+	var win = mostRecentWindow("navigator:browser");
+	if (!win) return;
+	// its ok to use different cursors in TB always
+
+	var bar = win.document.getElementById("nav-bar");
+	if (!bar) return;
+	if (document.getElementById("addTB").checked && 
+			bar.currentSet.indexOf("fixscroll-toolbar-button")==-1) {
+		bar.insertItem("fixscroll-toolbar-button", null, null, false);
+		bar.setAttribute("currentset",bar.currentSet); // needed to make persist work for some reason
+		win.document.persist(bar.id, 'currentset');
+	}	
+	
+	// open main pref dialog
+	if (document.getElementById("openPrefs").checked) 
+		window.openDialog("chrome://fixscroll/content/options.xul", "fixscrollPrefs", "chrome=yes,dialog=yes,resizable=yes");
+}
+]]>
+</script>
+
+<vbox flex="1">
+	<description id="notes">&fixscroll.intro.notes;</description>
+	<separator flex="1" />
+	<checkbox id="addTB" type="checkbox" checked="true" label="&fixscroll.intro.addTB;"/>
+	<checkbox id="openPrefs" type="checkbox" checked="true" label="&fixscroll.intro.openprefs;"/>
+</vbox>
+
+</dialog>
+

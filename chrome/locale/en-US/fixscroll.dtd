@@ -1,0 +1,16 @@
+<!ENTITY fixscroll.overlay.toollabel "FixScroll Button">
+<!ENTITY fixscroll.overlay.tooltip "Toggle FixScroll Mode">
+
+<!ENTITY fixscroll.option.default "always FixScroll Mode ON">
+<!ENTITY fixscroll.option.duplicateHeight "Duplicate Area Height(pixel)">
+<!ENTITY fixscroll.option.cursor.value "Keyboard UP/DOWN scroll mount(pixel)">
+<!ENTITY fixscroll.option.cursor.default "*if you set 0, set default(fontsize)">
+<!ENTITY fixscroll.option.page.value "Keyboard PageUP/PageDOWN scroll mount(pixel)">
+<!ENTITY fixscroll.option.page.default "*if you set 0, set default (a half of page)">
+<!ENTITY fixscroll.option.title "FixScroll Prefference">
+
+<!ENTITY fixscroll.intro.title "FixScroll Startup Wizard">
+<!ENTITY fixscroll.intro.notes "Welcome to the Fixscroll Startup Wizard. This will let you quickly configure the extension for your computer.">
+<!ENTITY fixscroll.intro.addTB "Add button(toggle Fixscroll mode) to Navigation Tool Bar.">
+<!ENTITY fixscroll.intro.openprefs "Open the main preferences dialog afterwards">
+<!ENTITY fixscroll.intro.end "OK">
