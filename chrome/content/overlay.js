@@ -2,17 +2,23 @@ const fxslVERSION = "0.1";
 
 const fxslPref = Components.classes["@mozilla.org/preferences-service;1"].getService(Components.interfaces.nsIPrefService).getBranch(null);;
 
-function fxslNotificationBox()
-{
-	return gBrowser.mPanelContainer.childNodes[ gBrowser.tabContainer.selectedIndex ];
-}
+var FixscrollData = function(){
+	this.fixPosition = 0;
+	this.slidePosition = 0;
+	this.isBrowserOver = true;//false;//
+	this.horizonPosition= 0;
+	this._innerWidth= 0;
+	this._innerHeight= 0;
+};
 
-var fxslLoader = {
-	showFirefoxContextMenu: function(event) {
-		// show or hide the menuitem based on what the context menu is on
-		document.getElementById("context-fixscroll").hidden = gContextMenu.onImage;
-	},
-	
+FixscrollControl = {
+	SCROLL_WIDTH : 17,
+	DEFAULT_COLOR : "rgb(255,255,255)",
+	duplicateHeight : 20,
+
+	////////////////////////////////////////////////////////////////////////////////////
+	//load method
+	////////////////////////////////////////////////////////////////////////////////////
 	onLoad: function() {
 		// first loading
 		var version = null;
@@ -24,47 +30,102 @@ var fxslLoader = {
 		}
 
 		var container = gBrowser.tabContainer;
-		container.addEventListener("TabSelect", fxslLoader.onTabSelected, false);
-		container.addEventListener("TabOpen", fxslLoader.onTabOpened, false);
+		container.addEventListener("TabSelect", FixscrollControl.onTabSelected, false);
 		
 		var sidebarBox = document.getElementById("sidebar-box");
-		sidebarBox.addEventListener("resize" ,fxslLoader.resize ,true);
+		sidebarBox.addEventListener("resize" ,FixscrollControl.onResize ,true);
 
 		//bottombox
-		window.addEventListener("findbaropen",fxslLoader.resize,false);
+		window.addEventListener("findbaropen" ,FixscrollControl.onResize ,false);
 
 		//pref
-		//var defaultOn = Application.prefs.get("extensions.fixscroll.defaultOn");
-		//defaultOn.events.addListener("change", fxslLoader.updateMode);
 		fxslPref.QueryInterface(Ci.nsIPrefBranch2);
 		fxslPref.addObserver("extensions.fixscroll.defaultOn", this, false);
 		fxslPref.QueryInterface(Ci.nsIPrefBranch);
 		
-		fixscroll_hack_load();
+		this.fixscroll_hack_load();
+		
+		this.initElement();
 		
 		if(fxslPref.getBoolPref("extensions.fixscroll.defaultOn")){
 			//go ON start TAB
-			var box = fxslNotificationBox();
-			box.fixscroll = new Fixscroll(box.id);
-			box.fixscroll.onLoad();
+			var tab = gBrowser.selectedTab;
+			tab.isFixscroll = true;
+			tab.fixscroll = new FixscrollData();
+			
+			this.start();
+		}else{
+			var cu = document.getElementById("fixscroll-toolbar-button");
+			cu.setAttribute("fixscrollOn", false);
 		}
 	},
 	
 	onUnload: function(){
 		var container = gBrowser.tabContainer;
-		container.removeEventListener("TabSelect", fxslLoader.onTabSelected, false);
-		container.removeEventListener("TabOpen", fxslLoader.onTabOpened, false);
+		container.removeEventListener("TabSelect", FixscrollControl.onTabSelected, false);
 
 		var sidebarBox = document.getElementById("sidebar-splitter");
-		sidebarBox.removeEventListener("resize" ,fxslLoader.resize ,true);
+		sidebarBox.removeEventListener("resize" ,FixscrollControl.onResize ,true);
 
-		window.removeEventListener("findbaropen",fxslLoader.resize,false);
+		window.removeEventListener("findbaropen",FixscrollControl.onResize ,false);
 
 		fxslPref.removeObserver("extensions.fixscroll.defaultOn", this);
 
-		fixscroll_hack_unload();
+		this.fixscroll_hack_unload();
 	},
 	
+	initElement: function(){
+		//Application.console.log("initElement");
+		
+		var fontsize = this.fontsize;
+		
+		//scroll vertical
+		this.scrollV = document.createElement("scrollbar");
+		this.scrollV.id = "fxsl.scrollbarV";
+		this.scrollV.orient = "vertical";
+		this.scrollV.setAttribute("increment", fontsize);
+		
+		//scroll horizontal
+		this.scrollH = document.createElement("scrollbar");
+		this.scrollH.id = "fxsl.scrollbarH";
+		this.scrollH.orient = "horizontal";
+		this.scrollH.setAttribute("increment", fontsize);
+		this.scrollH.setAttribute("curpos", 0);
+		
+		//canvas
+		//canvasÇÃí«â¡(canvasÇÇªÇÃÇ‹Ç‹appendchildÇ∑ÇÈÇ∆ägëÂÇ≥ÇÍÇƒÇµÇ‹Ç§ÅB
+		this.canvasBox = document.createElement("box");
+		this.canvasBox.id = "fxsl.canvasBox";
+
+		this.canvas = document.createElementNS("http://www.w3.org/1999/xhtml", "html:canvas");
+		this.canvas.id = "fxsl.canvas";
+		this.canvas.height = 1;
+		this.canvasBox.appendChild(this.canvas);
+		
+		//border
+		this.border = document.createElement("box");
+		this.border.id = "fxsl.border";
+		this.border.top = 0;
+		this.border.left = 0;
+		this.border.height = 2;
+		this.border.width = innerWidth;
+		this.border.style.backgroundColor = "blue";
+		this.border.style.opacity = 0.5;
+		
+		//duplicateArea
+		this.dBox = document.createElement("box");
+		this.dBox.id = "fxsl.duplicateArea";
+		this.dBox.top = 0;
+		this.dBox.left = 0;
+		this.dBox.height = this.duplicateHeight;
+		this.dBox.width = innerWidth;
+		this.dBox.style.backgroundColor = "gray";
+		this.dBox.style.opacity = 0.5;
+	},
+	
+	////////////////////////////////////////////////////////////////////////////////////
+	//listener method ( for tabbrowser)
+	////////////////////////////////////////////////////////////////////////////////////
 	observe: function(aSubject, aTopic, aData){
 		if ("nsPref:changed" != aTopic) return;
 		
@@ -72,39 +133,41 @@ var fxslLoader = {
 		//Application.console.log("updateMode:" + defaultOn);
 		
 		//update selected
-		var box = fxslNotificationBox();
+		var tab = gBrowser.selectedTab;
 		if(defaultOn){
 			//go ON
-			box.fixscroll = new Fixscroll(box.id);
-			box.fixscroll.onLoad();
+			if(!tab.fixscroll){
+				tab.fixscroll = new FixscrollData();
+				this.start();
+			}
 		}else{
 			//go OFF
-			if(box.fixscroll){
-				box.fixscroll.onUnLoad();
-				box.fixscroll = null;
+			if(tab.fixscroll){
+				this.stop();
+				tab.fixscroll = null;
 			}
 		}
 		
 		//update all flag
-		var boxes = gBrowser.mPanelContainer.childNodes;
-		for(var i=0; i< boxes.length;i++){
-			boxes[i].isFixscroll = defaultOn;
+		var tabs = gBrowser.tabContainer.childNodes;
+		for(var i=0; i< tabs.length;i++){
+			tabs[i].isFixscroll = defaultOn;
 		}
 
 		var cu = document.getElementById("fixscroll-toolbar-button");
 		cu.setAttribute("fixscrollOn",defaultOn);
 	},
-	
-	onToolbarButtonCommand: function(e) {
-		var box = fxslNotificationBox();
-		//Application.console.log("onToolbarButtonCommand:" + box.isFixscroll);
 
-		if(box.isFixscroll){
+	onToolbarButtonCommand: function(e) {
+		var tab = gBrowser.selectedTab;
+		//Application.console.log("onToolbarButtonCommand:" + tab.isFixscroll);
+
+		if(tab.isFixscroll){
 			//go OFF
-			box.isFixscroll = false;
-			if(box.fixscroll){
-				box.fixscroll.onUnLoad();
-				box.fixscroll = null;
+			tab.isFixscroll = false;
+			if(tab.fixscroll){
+				this.stop();
+				tab.fixscroll = null;
 			}
 			
 			//toolbar-button OFF
@@ -112,12 +175,12 @@ var fxslLoader = {
 			cu.setAttribute("fixscrollOn",false);
 		}else{
 			//go ON
-			box.isFixscroll = true;
+			tab.isFixscroll = true;
 			
-			//„Ç™„Éñ„Ç∏„Çß„ÇØ„Éà„ÅÆËøΩÂä†
-			box.fixscroll = new Fixscroll(box.id);
+			//ÉIÉuÉWÉFÉNÉgÇÃí«â¡
+			tab.fixscroll = new FixscrollData();
 			//Application.console.log("fixPosition1: " + box.fixscroll.fixPosition);
-			box.fixscroll.onLoad();
+			this.start();
 			
 			//toolbar-button ON
 			var cu = document.getElementById("fixscroll-toolbar-button");
@@ -125,131 +188,45 @@ var fxslLoader = {
 		}
 	},
 
-	onTabOpened: function(e){
-		var defaultOn = fxslPref.getBoolPref("extensions.fixscroll.defaultOn");
-		//Application.console.log("onTabOpened:" + defaultOn);
-
-		if(defaultOn){
-			var browser = e.target.linkedBrowser;
-			// selectedIndex have not been updated
-			var box = browser.parentNode.parentNode;
-			box.isFixscroll = true;
-		}
-	},
-	
 	onTabSelected: function(e){
-		var box = fxslNotificationBox();
-		//Application.console.log("onTabSelected:" + box.isFixscroll + ", " + box.fixscroll + "," + box.id);
+		var tab = gBrowser.selectedTab;
+		//Application.console.log("onTabSelected:" + tab.isFixscroll + ", " + tab.fixscroll + "," + tab.linkedPanel + "," + tab.tabIndex );
 
 		//no setting -> use default value
-		if(box.isFixscroll == undefined){
+		if(tab.isFixscroll == undefined){
 			var defaultOn = fxslPref.getBoolPref("extensions.fixscroll.defaultOn");
-			box.isFixscroll = defaultOn;
+			tab.isFixscroll = defaultOn;
 		}
 		
-		if(box.isFixscroll && !box.fixscroll){
+		if(tab.isFixscroll && !tab.fixscroll){
 			//defaultOn == true and show not yet
 			//Application.console.log("onTabSelected@ onLoad");
-			box.fixscroll = new Fixscroll(box.id);
-			box.fixscroll.onLoad();
-		}else if(!box.isFixscroll){
+			tab.fixscroll = new FixscrollData();
+			FixscrollControl.start();
+		}else if(!tab.isFixscroll){
 			//defaultOn == false
 			//Application.console.log("onTabSelected@ onUnLoad" + box.fixscroll);
-			if(box.fixscroll){
-				box.fixscroll.onUnLoad();
-				box.fixscroll = null;
+			if(tab.fixscroll){
+				FixscrollControl.stop();
+				tab.fixscroll = null;
 			}
 		}else{
 			//Application.console.log("onTabSelected@ resize");
-			fxslLoader.resize();
+			FixscrollControl.onResize();
 		}
 
 		//toolbar-button 
 		var cu = document.getElementById("fixscroll-toolbar-button");
-		cu.setAttribute("fixscrollOn",box.isFixscroll);
+		cu.setAttribute("fixscrollOn",tab.isFixscroll);
 	},
 	
-	resize: function(){
-		var box = fxslNotificationBox();
-		if(box.isFixscroll && box.fixscroll){
-			box.fixscroll.onResize();
-		}
-	},
-};
+	////////////////////////////////////////////////////////////////////////////////////
+	//fixscroll ON/OFF method
+	////////////////////////////////////////////////////////////////////////////////////
+	start: function() {
+		//Application.console.log("start:" + gBrowser.selectedTab.linkedPanel);
 
-var Fixscroll = function(panelID){
-	this._panelID = panelID;
-
-	//variable
-	this.fixPosition = 0;
-	this.slidePosition = 0;
-	this.isBrowserOver = true;//false;//
-	this.horizonPosition= 0;
-	this._innerWidth= 0;
-	this._innerHeight= 0;
-	
-	////////////////////////////////////////
-	//element
-	this.browser = gBrowser.selectedBrowser;
-	
-	var fontsize = this.fontsize;
-	
-	//scroll vertical
-	this.scrollV = document.createElement("scrollbar");
-	this.scrollV.id = "scrollbarV_" + panelID;
-	this.scrollV.orient = "vertical";
-	this.scrollV.setAttribute("increment", fontsize);
-	
-	//scroll horizontal
-	this.scrollH = document.createElement("scrollbar");
-	this.scrollH.id = "scrollbarH_" + panelID;
-	this.scrollH.orient = "horizontal";
-	this.scrollH.setAttribute("increment", fontsize);
-	this.scrollH.setAttribute("curpos", 0);
-	
-	//canvas
-	//canvas„ÅÆËøΩÂä†(canvas„Çí„Åù„ÅÆ„Åæ„Åæappendchild„Åô„Çã„Å®Êã°Â§ß„Åï„Çå„Å¶„Åó„Åæ„ÅÜ„ÄÇ
-	this.canvasBox = document.createElement("box");
-	this.canvasBox.id = "canvasBox_" + panelID;
-
-	this.canvas = document.createElementNS("http://www.w3.org/1999/xhtml", "html:canvas");
-	this.canvas.id = "canvas_" + panelID;
-	this.canvas.height = 1;
-	this.canvasBox.appendChild(this.canvas);
-	
-	//border
-	this.border = document.createElement("box");
-	this.border.id = "border_" + panelID;
-	this.border.top = 0;
-	this.border.left = 0;
-	this.border.height = 2;
-	this.border.width = innerWidth;
-	this.border.style.backgroundColor = "blue";
-	this.border.style.opacity = 0.5;
-	
-	//duplicateArea
-	this.dBox = document.createElement("box");
-	this.dBox.id = "duplicateArea_" + panelID;
-	this.dBox.top = 0;
-	this.dBox.left = 0;
-	this.dBox.height = this.duplicateHeight;
-	this.dBox.width = innerWidth;
-	this.dBox.style.backgroundColor = "gray";
-	this.dBox.style.opacity = 0.5;
-};
-
-Fixscroll.prototype = {
-
-	//static
-	SCROLL_WIDTH : 17,
-	DEFAULT_COLOR : "rgb(255,255,255)",
-
-	//pref
-	duplicateHeight : 20,
-	
-	onLoad: function() {
-		var box = fxslNotificationBox();
-		var stack = box.childNodes[0];
+		var stack = this.notificationBox.childNodes[0];
 		var browser = this.browser;
 
 		var stackBox = document.getBoxObjectFor(stack);
@@ -257,12 +234,6 @@ Fixscroll.prototype = {
 		var innerWidth = stackBox.width - this.SCROLL_WIDTH;
 
 		browser.style.overflow = "hidden";
-
-		stack.appendChild(this.scrollV);
-		stack.appendChild(this.scrollH);
-		stack.appendChild(this.canvasBox);
-		stack.appendChild(this.border);
-		stack.appendChild(this.dBox);
 		
 		// keep position(OFF -> ON)1. This should be before drawing.
 		this.fixPosition = browser.contentWindow.scrollY;
@@ -275,20 +246,14 @@ Fixscroll.prototype = {
 		this.scrollH.setAttribute("curpos", this.horizonPosition);
 		
 		//listener. After init.
-		this.scrollV.addEventListener('DOMAttrModified', this, true);
-		this.scrollH.addEventListener('DOMAttrModified', this, true);
-		this.canvas.addEventListener("mousemove", this, true);
-		this.canvas.addEventListener("mouseover", this, true);
-		this.dBox.addEventListener("mousemove", this, true);
-		
-		stack.addEventListener('DOMMouseScroll', this, true);
 		window.addEventListener('resize', this, true);
 		browser.addEventListener("pageshow", this, true);
 	},
 	
-	onUnLoad: function() {
-		var box = fxslNotificationBox();
-		var stack = box.childNodes[0];
+	stop: function() {
+		//Application.console.log("stop:" + gBrowser.selectedTab.linkedPanel);
+
+		var stack = this.notificationBox.childNodes[0];
 		var browser = this.browser;
 
 		//listener revert
@@ -313,21 +278,52 @@ Fixscroll.prototype = {
 		browser.height = null;
 		browser.width = null;
 
-		stack.removeChild(this.scrollV);
-		stack.removeChild(this.scrollH);
-		stack.removeChild(this.canvasBox);
-		stack.removeChild(this.border);
-		stack.removeChild(this.dBox);
+		try{//if stack do not contain, error occur.
+			stack.removeChild(this.scrollV);
+			stack.removeChild(this.scrollH);
+			stack.removeChild(this.canvasBox);
+			stack.removeChild(this.border);
+			stack.removeChild(this.dBox);
+		}catch(e){}
 		
-		fixscroll_hack_browserOff();
+		this.fixscroll_hack_browserOff();
 		
 		//keep position(ON -> OFF)
-		var hoge = this.fixPosition + this.slidePosition;
 		browser.contentWindow.scrollTo(this.horizonPosition, this.fixPosition + this.slidePosition);
 	},
+
+	seiriPrev: function(){
+		//Application.console.log("seiriPrev:")
+		this.scrollV.removeEventListener('DOMAttrModified', this, true);
+		this.scrollH.removeEventListener('DOMAttrModified', this, true);
+		this.canvas.removeEventListener("mousemove", this, true);
+		this.canvas.removeEventListener("mouseover", this, true);
+		this.dBox.removeEventListener("mousemove", this, true);
+
+		var stack = this.notificationBox.childNodes[0];
+		//stack.removeEventListener('DOMMouseScroll', this, true);
+		
+		stack.appendChild(this.scrollV);
+		stack.appendChild(this.scrollH);
+		stack.appendChild(this.canvasBox);
+		stack.appendChild(this.border);
+		stack.appendChild(this.dBox);
+	},
 	
+	seiriLast: function(){
+		//Application.console.log("seiriLast:")
+		this.scrollV.addEventListener('DOMAttrModified', this, true);
+		this.scrollH.addEventListener('DOMAttrModified', this, true);
+		this.canvas.addEventListener("mousemove", this, true);
+		this.canvas.addEventListener("mouseover", this, true);
+		this.dBox.addEventListener("mousemove", this, true);
+		
+		var stack = this.notificationBox.childNodes[0];
+		stack.addEventListener('DOMMouseScroll', this, true);
+	},
+
 	init: function(width, height){
-		//Application.console.log("init:" + width + "," + height);
+		this.seiriPrev();
 		this._innerWidth = width;
 		this._innerHeight = height;
 		
@@ -335,6 +331,7 @@ Fixscroll.prototype = {
 		
 		var browser = this.browser;
 		var scale = this.scale;
+		//Application.console.log("init:" + width + "," + height + "," + "," + browser.contentTitle);
 		
 		browser.top = 0;
 		browser.left = 0;
@@ -393,16 +390,21 @@ Fixscroll.prototype = {
 		browser.contentDocument.documentElement.addEventListener('DOMMouseScroll', this, false);
 		browser.contentDocument.documentElement.addEventListener('keydown', this, false);
 
-		fixscroll_hack_browserOn(browser);
+		this.fixscroll_hack_browserOn(browser);
 
-		//„Çπ„ÇØ„É≠„Éº„É´„Åå„Å™„ÅÑÂ†¥Âêà„ÅØÂÖ®Èù¢browser„Å´„Åô„Çã„ÄÇ
+		//ÉXÉNÉçÅ[ÉãÇ™Ç»Ç¢èÍçáÇÕëSñ browserÇ…Ç∑ÇÈÅB
 		if( this.scrollV.hidden ){
 			this.isBrowserOver = true;
 		}
 		this.displayBrowser();
+		
+		this.seiriLast();
 	},
-
-	handleEvent : function(aEvent) {
+	
+	////////////////////////////////////////////////////////////////////////////////////
+	//listener method(for fixscroll)
+	////////////////////////////////////////////////////////////////////////////////////
+	handleEvent :function(aEvent) {
 		//Application.console.log(aEvent.type);
 		switch (aEvent.type)
 		{
@@ -420,14 +422,14 @@ Fixscroll.prototype = {
 				}
 				return;
 			case 'DOMMouseScroll':
-				//Application.console.log("c:" + aEvent.currentTarget + ", t:" + aEvent.target + ", o:" + aEvent.originalTarget + ", " + aEvent.originalTarget.nodeName.toLowerCase() );
-				if(!this.isFixscrollable(aEvent)) return;
-				
+				//Application.console.log("c:" + aEvent.currentTarget + ", t:" + aEvent.target + ", o:" + aEvent.originalTarget + ", " + aEvent.originalTarget.nodeName.toLowerCase() + ":"+ aEvent.detail );
 				if(aEvent.ctrlKey && fxslPref.getIntPref("mousewheel.withcontrolkey.action") == 3 ){
 					//zoom
-					fxslLoader.resize();
-					return;
+					return ;
 				}
+				
+				if(!this.isFixscrollable(aEvent)) return;
+				
 				var scale = this.scale;
 				var move = parseInt(aEvent.detail) * this.fontsize * scale;
 
@@ -510,16 +512,16 @@ Fixscroll.prototype = {
 			case KeyEvent.DOM_VK_LEFT:
 				if(aEvent.ctrlKey){return;}//emulate default action
 				var nextHorizonPosition = parseInt(this.scrollH.getAttribute("curpos")) - this.fontsize;
-				nextHorizonPosition = Math.max(0, nextHorizonPosition);
-				nextHorizonPosition = Math.min(nextHorizonPosition, parseInt(this.scrollH.getAttribute("maxpos")));
-				this.scrollH.setAttribute("curpos", nextHorizonPosition);
+				this.scrollH.setAttribute("curpos", 
+					this.minMax(nextHorizonPosition, 0, parseInt(this.scrollH.getAttribute("maxpos")) )
+					);
 				break;
 			case KeyEvent.DOM_VK_RIGHT:
 				if(aEvent.ctrlKey){return;}//emulate default action
 				var nextHorizonPosition = parseInt(this.scrollH.getAttribute("curpos")) + this.fontsize;
-				nextHorizonPosition = Math.max(0, nextHorizonPosition);
-				nextHorizonPosition = Math.min(nextHorizonPosition, parseInt(this.scrollH.getAttribute("maxpos")));
-				this.scrollH.setAttribute("curpos", nextHorizonPosition);
+				this.scrollH.setAttribute("curpos", 
+					this.minMax(nextHorizonPosition, 0, parseInt(this.scrollH.getAttribute("maxpos")) )
+					);
 				break;
 			default:
 				return;
@@ -529,41 +531,46 @@ Fixscroll.prototype = {
 	},
 	
 	onResize: function(){
-		var box = fxslNotificationBox();
-		var stack = box.childNodes[0];
+		var tab = gBrowser.selectedTab;
+		if(! (tab.isFixscroll && tab.fixscroll) ) return;
+
+		var stack = FixscrollControl.notificationBox.childNodes[0];
 		
 		//accept small resize
-		this.canvasBox.hidden = true;
-		this.canvas.hidden = true;
-		this.scrollV.hidden = true;
-		this.scrollH.hidden = true;
-		this.border.hidden = true;
-		this.dBox.hidden = true;
-		this.browser.hidden = true;
+		FixscrollControl.canvasBox.hidden = true;
+		FixscrollControl.canvas.hidden = true;
+		FixscrollControl.scrollV.hidden = true;
+		FixscrollControl.scrollH.hidden = true;
+		FixscrollControl.border.hidden = true;
+		FixscrollControl.dBox.hidden = true;
+		FixscrollControl.browser.hidden = true;
 		
 		var stackBox = document.getBoxObjectFor(stack);
-		var innerHeight = stackBox.height - this.SCROLL_WIDTH;
-		var innerWidth = stackBox.width - this.SCROLL_WIDTH;
+		var innerHeight = stackBox.height - FixscrollControl.SCROLL_WIDTH;
+		var innerWidth = stackBox.width - FixscrollControl.SCROLL_WIDTH;
 
 		//revert
-		this.canvasBox.hidden = null;
-		this.canvas.hidden = null;
-		this.scrollV.hidden = null;
-		this.scrollH.hidden = null;
-		this.border.hidden = null;
-		this.dBox.hidden = null;
-		this.browser.hidden = null;
+		FixscrollControl.canvasBox.hidden = null;
+		FixscrollControl.canvas.hidden = null;
+		FixscrollControl.scrollV.hidden = null;
+		FixscrollControl.scrollH.hidden = null;
+		FixscrollControl.border.hidden = null;
+		FixscrollControl.dBox.hidden = null;
+		FixscrollControl.browser.hidden = null;
 
-		this.init(innerWidth, innerHeight);
+		FixscrollControl.init(innerWidth, innerHeight);
 	},
 	
+	////////////////////////////////////////////////////////////////////////////////////
+	//scroll method
+	////////////////////////////////////////////////////////////////////////////////////
 	scrollBy: function(length, altKey){
 		var maxpos = parseInt(this.scrollV.getAttribute("maxpos"));
 		var nextSlidePosition = this.slidePosition;
 		var nextFixPosition = this.fixPosition;
 		var windowHeight = this.getWindowHeight();
 
-		//TODO: Âá¶ÁêÜ„ÅåÈáç„Åè„Å™„Çâ„Å™„ÅÑ„Çà„ÅÜ„Å´Â∑•Â§´„Åó„Åü„ÅÑ„ÄÇ
+		//TODO: èàóùÇ™èdÇ≠Ç»ÇÁÇ»Ç¢ÇÊÇ§Ç…çHïvÇµÇΩÇ¢ÅB
 		var browser = this.browser;
 		var maxHeight = this.maxHeight;
 		maxHeight = (browser.contentWindow.scrollMaxY == 0 ? 0 : maxHeight);
@@ -645,7 +652,7 @@ Fixscroll.prototype = {
 		var overPosition = Math.ceil(currentPosition / windowHeight) * Math.round(windowHeight/scale) + this.slidePosition/scale;
 		var underPosition = (currentPosition + this.slidePosition)/scale;
 
-		browser.contentWindow.scrollToOrg(this.horizonPosition,overPosition);
+		browser.contentWindow.scrollToOrg(this.horizonPosition/scale,overPosition);
 		var ctx = this.canvas.getContext("2d");
 		ctx.scale(scale,scale);
 		ctx.drawWindow(browser.contentWindow, this.horizonPosition/scale, underPosition , this._innerWidth / scale, (this._innerHeight + this.duplicateHeight) / scale, this.DEFAULT_COLOR);
@@ -666,7 +673,7 @@ Fixscroll.prototype = {
 		this.canvasBox.height = this.canvas.height;
 
 		var maxpos = parseInt(this.scrollV.getAttribute("maxpos"));
-		var spaceHeight = Math.max(0, windowHeight + this.duplicateHeight - this.canvas.height - ( maxpos + windowHeight - currentPosition - this.slidePosition ) + 1 );
+		var spaceHeight = Math.max(0, windowHeight + this.duplicateHeight - this.canvas.height - ( maxpos + windowHeight - currentPosition - this.slidePosition ) + 1 );//adjust canvas height
 
 		this.setBrowserHeight( windowHeight - this.canvas.height + this.duplicateHeight - spaceHeight );
 		//Application.console.log("windowHeight: " + windowHeight + ", browser.height:" + browser.height + ",this.canvas.height: " + this.canvas.height);
@@ -678,16 +685,19 @@ Fixscroll.prototype = {
 
 		//control scroll position ( This must be after control height in browser. )
 		var overPosition = Math.ceil(currentPosition / windowHeight) * windowHeight + this.slidePosition;
-		var underPosition = currentPosition + this.slidePosition + (currentPosition == 0 ? 1 : 0);
+		var underPosition = currentPosition + this.slidePosition + (currentPosition % windowHeight == 0 ? 1 : 0);
 
 		var ctx = this.canvas.getContext("2d");
 		var scale = this.scale;
 		ctx.scale(scale,scale);
-		ctx.drawWindow(browser.contentWindow, this.horizonPosition, overPosition / scale, this._innerWidth / scale, this._innerHeight / scale, this.DEFAULT_COLOR);
+		ctx.drawWindow(browser.contentWindow, this.horizonPosition/scale, overPosition / scale, this._innerWidth / scale, (this._innerHeight>0 ? this._innerHeight : 0)  / scale, this.DEFAULT_COLOR);
 		
-		browser.contentWindow.scrollToOrg(this.horizonPosition,underPosition / scale);
+		browser.contentWindow.scrollToOrg(this.horizonPosition/scale,underPosition / scale);
 	},
 	
+	////////////////////////////////////////////////////////////////////////////////////
+	//util method
+	////////////////////////////////////////////////////////////////////////////////////
 	getWindowHeight: function(){
 		return this._innerHeight - this.duplicateHeight + (this.scrollH.hidden ? this.SCROLL_WIDTH : 0);
 	},
@@ -761,9 +771,36 @@ Fixscroll.prototype = {
 		}
 		return false;
 	},
+	get browser(){
+		return gBrowser.selectedTab.linkedBrowser;
+	},
+	get notificationBox(){
+		return document.getElementById(gBrowser.selectedTab.linkedPanel);
+	},
+	
+	minMax: function( input ,minLimit, maxLimit){
+		if( input < minLimit ) return minLimit;
+		if( input > maxLimit ) return maxLimit;
+		return input;
+	},
+	
+	//data
+	get fixPosition(){return gBrowser.selectedTab.fixscroll.fixPosition;},
+	get slidePosition(){return gBrowser.selectedTab.fixscroll.slidePosition;},
+	get isBrowserOver(){return gBrowser.selectedTab.fixscroll.isBrowserOver;},
+	get horizonPosition(){return gBrowser.selectedTab.fixscroll.horizonPosition;},
+	get _innerWidth(){return gBrowser.selectedTab.fixscroll._innerWidth;},
+	get _innerHeight(){return gBrowser.selectedTab.fixscroll._innerHeight;},
+	
+	set fixPosition(i){gBrowser.selectedTab.fixscroll.fixPosition = i;},
+	set slidePosition(i){gBrowser.selectedTab.fixscroll.slidePosition = i;},
+	set isBrowserOver(i){gBrowser.selectedTab.fixscroll.isBrowserOver = i;},
+	set horizonPosition(i){gBrowser.selectedTab.fixscroll.horizonPosition = i;},
+	set _innerWidth(i){gBrowser.selectedTab.fixscroll._innerWidth = i;},
+	set _innerHeight(i){gBrowser.selectedTab.fixscroll._innerHeight = i;},
 };
 
-//ÁèæÊôÇÁÇπ„Åß„ÅØ‰∏çË¶Å„Å†„Åå„ÄÅ„Çø„Éñ„Åß„Ç¢„Éâ„Ç™„É≥Ë®≠ÂÆö„Åô„ÇãÊñπÊ≥ï‰ª•Â§ñ„Å´„ÇÇ„Åß„Å¶„Åè„Çã„Åã„ÇÇ„Åó„Çå„Å™„ÅÑ„ÅÆ„Åß„ÄÅÊÆã„Åó„Å¶„Åä„Åè„ÄÇ
+//åªéûì_Ç≈ÇÕïsóvÇæÇ™ÅAÉ^ÉuÇ≈ÉAÉhÉIÉìê›íËÇ∑ÇÈï˚ñ@à»äOÇ…Ç‡Ç≈ÇƒÇ≠ÇÈÇ©Ç‡ÇµÇÍÇ»Ç¢ÇÃÇ≈ÅAécÇµÇƒÇ®Ç≠ÅB
 /*
 var fixscrollPrefObserver =
 {
@@ -795,7 +832,7 @@ fixscrollPrefObserver.register();
 */
 
 // The following is modified from Marc Boullet's All-in-one Gestures extension
-Fixscroll.prototype.findNodeToScroll = function (initialNode){
+FixscrollControl.findNodeToScroll = function (initialNode){
 	function getStyle(elem, aProp) {
 		var p = elem.ownerDocument.defaultView.getComputedStyle(elem, "").getPropertyValue(aProp);
 		var val = parseFloat(p);
@@ -862,5 +899,6 @@ Fixscroll.prototype.findNodeToScroll = function (initialNode){
 }
 // End AiOG
 
-window.addEventListener("load", function () { fxslLoader.onLoad(); }, false);
-window.addEventListener("unload", function () { fxslLoader.onUnload(); }, false);
+window.addEventListener("load", function () { FixscrollControl.onLoad(); }, false);
+window.addEventListener("unload", function () { FixscrollControl.onUnload(); }, false);
+

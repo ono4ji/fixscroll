@@ -1,50 +1,70 @@
-function fixscroll_hack_load() {
+FixscrollControl.fixscroll_hack_load = function() {
 	//when sidebarToggled, resize fixscroll
 	var source = toggleSidebar.toSource();
 	eval('toggleSidebar = '
-		+ source.replace('return;', ' fxslLoader.resize(); $&')
-		  .replace(/(\}\)?)$/, ' fxslLoader.resize(); $&')
+		+ source.replace('return;', ' FixscrollControl.onResize(); $&')
+		  .replace(/(\}\)?)$/, ' FixscrollControl.onResize(); $&')
 	);
 	
 	var findbarSource = gFindBar.close.toSource();
 	eval('gFindBar.close = '
-		+ findbarSource.replace(/(\}?)$/, ' fxslLoader.resize(); $&')
+		+ findbarSource.replace(/(\}?)$/, ' FixscrollControl.onResize(); $&')
 	);
 
 	var toolbarSource = setToolbarVisibility.toSource();
 	eval('setToolbarVisibility = '
-		+ toolbarSource.replace(/(\}?)$/, ' fxslLoader.resize(); $&')
+		+ toolbarSource.replace(/(\}?)$/, ' FixscrollControl.onResize(); $&')
+	);
+	
+	var zoomApplySource = FullZoom._applySettingToPref.toSource();
+	eval('FullZoom._applySettingToPref = '
+		+ zoomApplySource.replace(/(\}\)?)$/, ' FixscrollControl.onResize(); $&')
+	);
+
+	var zoomResetSource = FullZoom.reset.toSource();
+	eval('FullZoom.reset = '
+		+ zoomResetSource.replace(/(\}\)?)$/, ' FixscrollControl.onResize(); $&')
 	);
 }
 
-function fixscroll_hack_unload() {
+FixscrollControl.fixscroll_hack_unload = function() {
 	var source = toggleSidebar.toSource();
 	eval('toggleSidebar = '
-		+ source.replace('fxslLoader.resize();','')
+		+ source.replace('FixscrollControl.onResize();','')
 	);
 
 	var findbarSource = gFindBar.close.toSource();
 	eval('gFindBar.close = '
-		+ findbarSource.replace('fxslLoader.resize();', '')
+		+ findbarSource.replace('FixscrollControl.onResize();', '')
 	);
 
 	var toolbarSource = setToolbarVisibility.toSource();
 	eval('setToolbarVisibility = '
-		+ toolbarSource.replace('fxslLoader.resize();', '')
+		+ toolbarSource.replace('FixscrollControl.onResize();', '')
+	);
+	
+	var zoomApplySource = FullZoom._applySettingToPref.toSource();
+	eval('FullZoom._applySettingToPref = '
+		+ zoomApplySource.replace('FixscrollControl.onResize();', '')
+	);
+
+	var zoomResetSource = FullZoom.reset.toSource();
+	eval('FullZoom.reset = '
+		+ zoomResetSource.replace('FixscrollControl.onResize();', '')
 	);
 }
 
-function fixscroll_hack_browserOn(browser) {
+FixscrollControl.fixscroll_hack_browserOn = function(browser) {
 	// scroll MODE fix (findbar depend on "Find To Center" addon)
 	if(!browser.contentWindow.scrollToOrg){
 		browser.contentWindow.scrollToOrg = browser.contentWindow.scrollTo;
 		browser.contentWindow.scrollTo = 
 			function(x, y){
-				var box = fxslNotificationBox();
-				if(box.isFixscroll && box.fixscroll){
-					box.fixscroll.scrollH.setAttribute("curpos", x);
-					var dy = parseInt(y) - (box.fixscroll.fixPosition + box.fixscroll.slidePosition);
-					box.fixscroll.scrollBy(dy,false);
+				var tab = gBrowser.selectedTab;
+				if(tab.isFixscroll && tab.fixscroll){
+					FixscrollControl.scrollH.setAttribute("curpos", x);
+					var dy = parseInt(y) - (tab.fixscroll.fixPosition + tab.fixscroll.slidePosition);
+					FixscrollControl.scrollBy(dy,false);
 				}
 			};
 	}
@@ -53,9 +73,9 @@ function fixscroll_hack_browserOn(browser) {
 		browser.contentWindow.scrollByPagesOrg = browser.contentWindow.scrollByPages;
 		browser.contentWindow.scrollByPages = 
 			function(page){
-				var box = fxslNotificationBox();
-				if(box.isFixscroll && box.fixscroll){
-					box.fixscroll.scrollBy(box.fixscroll.pageValue * page, false);
+				var tab = gBrowser.selectedTab;
+				if(tab.isFixscroll && tab.fixscroll){
+					FixscrollControl.scrollBy(FixscrollControl.pageValue * page, false);
 				}
 			};
 	}
@@ -64,14 +84,14 @@ function fixscroll_hack_browserOn(browser) {
 		browser.contentWindow.scrollByLinesOrg = browser.contentWindow.scrollByLines;
 		browser.contentWindow.scrollByLines = 
 			function(line){
-				var box = fxslNotificationBox();
-				if(box.isFixscroll && box.fixscroll){
-					box.fixscroll.scrollBy(box.fixscroll.cursorValue * line, false);
+				var tab = gBrowser.selectedTab;
+				if(tab.isFixscroll && tab.fixscroll){
+					FixscrollControl.scrollBy(FixscrollControl.cursorValue * line, false);
 				}
 			};
 	}
 }
-function fixscroll_hack_browserOff() {
+FixscrollControl.fixscroll_hack_browserOff = function() {
 	var boxes = gBrowser.mPanelContainer.childNodes;
 	for(var i=0; i< boxes.length;i++){
 		var box = boxes[i];

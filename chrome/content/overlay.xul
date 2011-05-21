@@ -6,15 +6,9 @@
   <script type="application/javascript" src="chrome://fixscroll/content/overlay.js"/>
   <script type="application/javascript" src="chrome://fixscroll/content/functionfixscroll_hack.js"/>
 
-  <commandset id="mainCommandSet">
-    <command id="cmd_fullZoomReduce"  oncommand="FullZoom.reduce(); fxslLoader.resize();"/>
-    <command id="cmd_fullZoomEnlarge" oncommand="FullZoom.enlarge(); fxslLoader.resize();"/>
-    <command id="cmd_fullZoomReset"   oncommand="FullZoom.reset(); fxslLoader.resize();"/>
-  </commandset>
-
   <toolbarpalette id="BrowserToolbarPalette">
   <toolbarbutton id="fixscroll-toolbar-button" class="toolbarbutton-1 chromeclass-toolbar-additional"
     label="&fixscroll.overlay.toollabel;" tooltiptext="&fixscroll.overlay.tooltip;"
-    oncommand="fxslLoader.onToolbarButtonCommand()"/>
+    oncommand="FixscrollControl.onToolbarButtonCommand()"/>
   </toolbarpalette>
 </overlay>
