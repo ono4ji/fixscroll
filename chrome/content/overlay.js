@@ -16,6 +16,9 @@ FixscrollControl = {
 	DEFAULT_COLOR : "rgb(255,255,255)",
 	duplicateHeight : 20,
 
+	//last scroll triger time.
+	scrolledTime : new Date(),
+	
 	////////////////////////////////////////////////////////////////////////////////////
 	//load method
 	////////////////////////////////////////////////////////////////////////////////////
@@ -270,6 +273,7 @@ FixscrollControl = {
 		//addlister by init();
 		browser.contentDocument.documentElement.removeEventListener('DOMMouseScroll', this, false);
 		browser.contentDocument.documentElement.removeEventListener('keydown', this, false);
+		this.scrollEventOff();
 
 		//element revert
 		browser.style.overflow = null;
@@ -292,7 +296,7 @@ FixscrollControl = {
 		browser.contentWindow.scrollTo(this.horizonPosition, this.fixPosition + this.slidePosition);
 	},
 
-	seiriPrev: function(){
+	initPrev: function(){
 		//Application.console.log("seiriPrev:")
 		this.scrollV.removeEventListener('DOMAttrModified', this, true);
 		this.scrollH.removeEventListener('DOMAttrModified', this, true);
@@ -301,7 +305,7 @@ FixscrollControl = {
 		this.dBox.removeEventListener("mousemove", this, true);
 
 		var stack = this.notificationBox.childNodes[0];
-		//stack.removeEventListener('DOMMouseScroll', this, true);
+		stack.removeEventListener('DOMMouseScroll', this, true);
 		
 		stack.appendChild(this.scrollV);
 		stack.appendChild(this.scrollH);
@@ -310,7 +314,7 @@ FixscrollControl = {
 		stack.appendChild(this.dBox);
 	},
 	
-	seiriLast: function(){
+	initLast: function(){
 		//Application.console.log("seiriLast:")
 		this.scrollV.addEventListener('DOMAttrModified', this, true);
 		this.scrollH.addEventListener('DOMAttrModified', this, true);
@@ -321,9 +325,12 @@ FixscrollControl = {
 		var stack = this.notificationBox.childNodes[0];
 		stack.addEventListener('DOMMouseScroll', this, true);
 	},
-
+	
 	init: function(width, height){
-		this.seiriPrev();
+		this.initPrev();
+		height = (height > 0 ? height : 100);
+		width = (width > 0 ? width : 100);
+		
 		this._innerWidth = width;
 		this._innerHeight = height;
 		
@@ -331,7 +338,7 @@ FixscrollControl = {
 		
 		var browser = this.browser;
 		var scale = this.scale;
-		//Application.console.log("init:" + width + "," + height + "," + "," + browser.contentTitle);
+		//Application.console.log("init:" + width + "," + height + "," + "," + browser.contentTitle + "," + browser.contentWindow.scrollMaxY + "," + browser.contentWindow.scrollMaxX);
 		
 		browser.top = 0;
 		browser.left = 0;
@@ -339,7 +346,7 @@ FixscrollControl = {
 		browser.width = width;
 		
 		var maxWidth = browser.contentWindow.scrollMaxX;
-		var maxHeight = (browser.contentWindow.scrollMaxY == 0 ? 0 : this.maxHeight);
+		var maxHeight = (browser.contentWindow.scrollMaxY < 5 ? 0 : this.maxHeight);//ideal(== 0) but google map is 3.
 		this.scrollH.hidden = (maxWidth <= 0);
 		this.scrollV.hidden = (maxHeight <= 0);
 		if(this.scrollV.hidden){
@@ -386,9 +393,10 @@ FixscrollControl = {
 		//dump
 		//Application.console.log("last_max" + maxHeight + ",height" + height + ", browser.contentWindow.scrollMaxY" + browser.contentWindow.scrollMaxY + ",browser.height" + browser.height);
 
-		//this lister will vanish when url changes.
+		//this lister will vanish when url changes. 
 		browser.contentDocument.documentElement.addEventListener('DOMMouseScroll', this, false);
 		browser.contentDocument.documentElement.addEventListener('keydown', this, false);
+		this.scrollEventOn();
 
 		this.fixscroll_hack_browserOn(browser);
 
@@ -398,7 +406,7 @@ FixscrollControl = {
 		}
 		this.displayBrowser();
 		
-		this.seiriLast();
+		this.initLast();
 	},
 	
 	////////////////////////////////////////////////////////////////////////////////////
@@ -412,6 +420,7 @@ FixscrollControl = {
 				if(aEvent.attrName != "curpos") return;
 				
 				if(aEvent.currentTarget.getAttribute("orient") == "vertical"){
+					this.updateScrolledTime();
 					this.scrollBy(parseInt(this.scrollV.getAttribute("curpos")) - this.fixPosition - this.slidePosition);
 				}else{
 					var nextHorizonPosition = parseInt(this.scrollH.getAttribute("curpos"));
@@ -430,6 +439,8 @@ FixscrollControl = {
 				
 				if(!this.isFixscrollable(aEvent)) return;
 				
+				this.updateScrolledTime();
+				
 				var scale = this.scale;
 				var move = parseInt(aEvent.detail) * this.fontsize * scale;
 
@@ -441,6 +452,8 @@ FixscrollControl = {
 				this.onKeydown(aEvent);
 				return;
 			case 'mousemove':
+				//Application.console.log("mousemove");
+				this.scrollEventOff();
 				if(aEvent.target.id == this.canvas.id){
 					if(!this.scrollV.hidden){
 						this.isBrowserOver = !this.isBrowserOver;
@@ -451,6 +464,8 @@ FixscrollControl = {
 				}
 				return;
 			case 'mouseover':
+				//Application.console.log("mouseover");
+				this.scrollEventOff();
 				if(aEvent.target.id == this.canvas.id){
 					if(!this.scrollV.hidden){
 						this.isBrowserOver = !this.isBrowserOver;
@@ -465,12 +480,27 @@ FixscrollControl = {
 				}
 				return;
 			case 'pageshow':
-				this.fixPosition = 0;
+				var eventTab = aEvent.target;
+				//Application.console.log("pageshow:" + eventTab.tagName + "," + eventTab.persisted + "," + this.browser.contentWindow.scrollY + "," + this.browser.contentWindow.scrollX);
+				//var tab = gBrowser.selectedTab;
+				//if(! (tab.isFixscroll && tab.fixscroll) ) return;
+				this.fixPosition = this.browser.contentWindow.scrollY;
 				this.slidePosition = 0;
-				this.horizonPosition = 0;
-				this.scrollV.setAttribute("curpos", 0);
-				this.scrollH.setAttribute("curpos", 0);
+				this.horizonPosition = this.browser.contentWindow.scrollX;
+				this.scrollV.setAttribute("curpos", this.fixPosition);
+				this.scrollH.setAttribute("curpos", this.horizonPosition);
 				this.init(this._innerWidth, this._innerHeight);
+				return;
+			case 'scroll':
+				if(this.hoge) return;
+
+				//Application.console.log("scroll:" + this.browser.contentWindow.scrollY);
+				var next = parseInt(this.browser.contentWindow.scrollY) - this.fixPosition - this.slidePosition;
+				if(next != 0 && this.canScrollTriger){
+					//Application.console.log(next);
+					this.updateScrolledTime();
+					this.scrollBy(next);
+				}
 				return;
 		}
 	},
@@ -531,6 +561,7 @@ FixscrollControl = {
 	},
 	
 	onResize: function(){
+		//Application.console.log("onResize");
 		var tab = gBrowser.selectedTab;
 		if(! (tab.isFixscroll && tab.fixscroll) ) return;
 
@@ -543,8 +574,14 @@ FixscrollControl = {
 		FixscrollControl.scrollH.hidden = true;
 		FixscrollControl.border.hidden = true;
 		FixscrollControl.dBox.hidden = true;
-		FixscrollControl.browser.hidden = true;
-		
+		//(browser.hidden = true) makes flash reset.
+		var browser = FixscrollControl.browser;
+		browser.style.overflow = null;
+		browser.top = null;
+		browser.left = null;
+		browser.height = null;
+		browser.width = null;
+
 		var stackBox = document.getBoxObjectFor(stack);
 		var innerHeight = stackBox.height - FixscrollControl.SCROLL_WIDTH;
 		var innerWidth = stackBox.width - FixscrollControl.SCROLL_WIDTH;
@@ -556,8 +593,8 @@ FixscrollControl = {
 		FixscrollControl.scrollH.hidden = null;
 		FixscrollControl.border.hidden = null;
 		FixscrollControl.dBox.hidden = null;
-		FixscrollControl.browser.hidden = null;
-
+		browser.style.overflow = "hidden";
+		
 		FixscrollControl.init(innerWidth, innerHeight);
 	},
 	
@@ -565,6 +602,8 @@ FixscrollControl = {
 	//scroll method
 	////////////////////////////////////////////////////////////////////////////////////
 	scrollBy: function(length, altKey){
+		this.scrollEventOff();
+
 		var maxpos = parseInt(this.scrollV.getAttribute("maxpos"));
 		var nextSlidePosition = this.slidePosition;
 		var nextFixPosition = this.fixPosition;
@@ -615,6 +654,8 @@ FixscrollControl = {
 		}
 		this.border.hidden = this.scrollV.hidden;
 		this.dBox.hidden = this.scrollV.hidden;
+		
+		FixscrollControl.scrollEventOn();
 	},
 	
 	displayBrowser: function(){
@@ -638,15 +679,15 @@ FixscrollControl = {
 		var windowHeight = this.getWindowHeight();
 		
 		//control height
-		this.setBrowserHeight( this.scrollV.hidden ? windowHeight : currentPosition % windowHeight );
+		var zeroBrowser = this.setBrowserHeight( this.scrollV.hidden ? windowHeight : currentPosition % windowHeight );
 		this.canvas.height= windowHeight - browser.height + this.duplicateHeight;
 		this.canvasBox.height = this.canvas.height;
 		//Application.console.log("windowHeight: " + windowHeight + ", browser.height:" + browser.height + ",this.canvas.height: " + this.canvas.height);
 
 		//control position
-		browser.top = 0;
-		this.canvasBox.top = browser.height;
-		this.border.top = browser.height;
+		browser.top = ( zeroBrowser == 0 ? 0 : windowHeight + 100);
+		this.canvasBox.top = browser.height - zeroBrowser;
+		this.border.top = this.canvasBox.top;
 
 		//control scroll position
 		var overPosition = Math.ceil(currentPosition / windowHeight) * Math.round(windowHeight/scale) + this.slidePosition/scale;
@@ -702,12 +743,15 @@ FixscrollControl = {
 		return this._innerHeight - this.duplicateHeight + (this.scrollH.hidden ? this.SCROLL_WIDTH : 0);
 	},
 
+	//avoid 0 height. for keep browser content.
 	setBrowserHeight: function(_height){
 		var browser = this.browser;
 		//browser can change only after set null
 		browser.left = null;
 		browser.left = 0;
-		browser.height= _height;
+		var zeroHeight = (_height == 0 ? 1 : 0);
+		browser.height= _height + zeroHeight;
+		return zeroHeight;
 	},
 	
 	get scale(){
@@ -782,6 +826,34 @@ FixscrollControl = {
 		if( input < minLimit ) return minLimit;
 		if( input > maxLimit ) return maxLimit;
 		return input;
+	},
+	
+	scrollEventOn: function(){
+		//Application.console.log("scrollEventOn");
+		window.setTimeout(
+			function(){
+				FixscrollControl._scrollEventOn();
+			},300);
+		
+	},
+	
+	//cannot call addEventListener in setTimeout;
+	_scrollEventOn: function(){
+		FixscrollControl.browser.contentWindow.addEventListener('scroll', this, false);
+	},
+	
+	scrollEventOff: function(){
+		//Application.console.log("scrollEventOff");
+		this.browser.contentWindow.removeEventListener('scroll', this, false);
+	},
+	
+	//time is depend on enviroment. If PC is slow, this time will be more.
+	get canScrollTriger(){
+		return new Date() - this.scrolledTime > 200;
+	},
+	
+	updateScrolledTime: function(){
+		this.scrolledTime = new Date();
 	},
 	
 	//data

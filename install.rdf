@@ -41,7 +41,7 @@
     <em:id>fixscroll@developer.com</em:id>
     <em:type>2</em:type>
     <em:name>FixScroll</em:name>
-    <em:version>0.2.20110521</em:version>
+    <em:version>0.3.20110523</em:version>
     <em:optionsURL>chrome://fixscroll/content/options.xul</em:optionsURL>
     <em:homepageURL>http://d.hatena.ne.jp/ono4ji/</em:homepageURL>
     <em:iconURL>chrome://fixscroll/skin/icon.png</em:iconURL>

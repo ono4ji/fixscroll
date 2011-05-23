@@ -7,8 +7,8 @@
   <script type="application/javascript" src="chrome://fixscroll/content/functionfixscroll_hack.js"/>
 
   <toolbarpalette id="BrowserToolbarPalette">
-  <toolbarbutton id="fixscroll-toolbar-button" class="toolbarbutton-1 chromeclass-toolbar-additional"
-    label="&fixscroll.overlay.toollabel;" tooltiptext="&fixscroll.overlay.tooltip;"
-    oncommand="FixscrollControl.onToolbarButtonCommand()"/>
+    <toolbarbutton id="fixscroll-toolbar-button" class="toolbarbutton-1 chromeclass-toolbar-additional"
+      label="&fixscroll.overlay.toollabel;" tooltiptext="&fixscroll.overlay.tooltip;"
+      oncommand="FixscrollControl.onToolbarButtonCommand()"/>
   </toolbarpalette>
 </overlay>
