@@ -4,6 +4,7 @@
 
 <overlay id="fixscroll-overlay" xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul">
   <script type="application/javascript" src="chrome://fixscroll/content/overlay.js"/>
+  <script type="application/javascript" src="chrome://fixscroll/content/contextMenu.js"/>
   <script type="application/javascript" src="chrome://fixscroll/content/functionfixscroll_hack.js"/>
 
   <toolbarpalette id="BrowserToolbarPalette">
@@ -11,4 +12,11 @@
       label="&fixscroll.overlay.toollabel;" tooltiptext="&fixscroll.overlay.tooltip;"
       oncommand="FixscrollControl.onToolbarButtonCommand()"/>
   </toolbarpalette>
+  
+  <popup id="contentAreaContextMenu">
+    <menuitem id="fixscroll-heretotop"
+              class="menuitem-iconic"
+              label="&fixscroll.overlay.context.heretotop;"
+              oncommand="FixScrollContextMenu.contextMenuHereToTop(event);" />
+  </popup>
 </overlay>

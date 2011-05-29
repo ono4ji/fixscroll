@@ -25,6 +25,11 @@ FixscrollControl.fixscroll_hack_load = function() {
 	eval('FullZoom.reset = '
 		+ zoomResetSource.replace(/(\}\)?)$/, ' FixscrollControl.onResize(); $&')
 	);
+	
+	var fullScreenSource = FullScreen.mouseoverToggle.toSource();
+	eval('FullScreen.mouseoverToggle = '
+		+ fullScreenSource.replace(/(\}\)?)$/, ' FixscrollControl.onResize(); $&')
+	);
 }
 
 FixscrollControl.fixscroll_hack_unload = function() {
@@ -51,6 +56,11 @@ FixscrollControl.fixscroll_hack_unload = function() {
 	var zoomResetSource = FullZoom.reset.toSource();
 	eval('FullZoom.reset = '
 		+ zoomResetSource.replace('FixscrollControl.onResize();', '')
+	);
+
+	var fullScreenSource = FullScreen.mouseoverToggle.toSource();
+	eval('FullScreen.mouseoverToggle = '
+		+ fullScreenSource.replace('FixscrollControl.onResize();', '')
 	);
 }
 

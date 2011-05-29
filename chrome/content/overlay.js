@@ -1,4 +1,4 @@
-const fxslVERSION = "0.1";
+const fxslVERSION = "0.4";
 
 const fxslPref = Components.classes["@mozilla.org/preferences-service;1"].getService(Components.interfaces.nsIPrefService).getBranch(null);;
 
@@ -32,14 +32,13 @@ FixscrollControl = {
 			fxslPref.setCharPref("extensions.fixscroll.version", fxslVERSION);
 		}
 
-		var container = gBrowser.tabContainer;
-		container.addEventListener("TabSelect", FixscrollControl.onTabSelected, false);
+		gBrowser.tabContainer.addEventListener("TabSelect", function(){FixscrollControl.onTabSelected();}, false);
 		
 		var sidebarBox = document.getElementById("sidebar-box");
-		sidebarBox.addEventListener("resize" ,FixscrollControl.onResize ,true);
+		sidebarBox.addEventListener("resize" ,function(){FixscrollControl.onResize();} ,false);
 
-		//bottombox
-		window.addEventListener("findbaropen" ,FixscrollControl.onResize ,false);
+		window.addEventListener("findbaropen" ,function(){FixscrollControl.onResize();} ,false);//bottombox
+		window.addEventListener("fullscreen", function(){FixscrollControl.onResize();}, false);//fullscreen
 
 		//pref
 		fxslPref.QueryInterface(Ci.nsIPrefBranch2);
@@ -51,7 +50,7 @@ FixscrollControl = {
 		this.initElement();
 		
 		if(fxslPref.getBoolPref("extensions.fixscroll.defaultOn")){
-			//go ON start TAB
+			//mode ON@first TAB
 			var tab = gBrowser.selectedTab;
 			tab.isFixscroll = true;
 			tab.fixscroll = new FixscrollData();
@@ -64,13 +63,13 @@ FixscrollControl = {
 	},
 	
 	onUnload: function(){
-		var container = gBrowser.tabContainer;
-		container.removeEventListener("TabSelect", FixscrollControl.onTabSelected, false);
+		gBrowser.tabContainer.removeEventListener("TabSelect", function(){FixscrollControl.onTabSelected();}, false);
 
-		var sidebarBox = document.getElementById("sidebar-splitter");
-		sidebarBox.removeEventListener("resize" ,FixscrollControl.onResize ,true);
+		var sidebarBox = document.getElementById("sidebar-box");
+		sidebarBox.removeEventListener("resize" ,function(){FixscrollControl.onResize();} ,false);
 
-		window.removeEventListener("findbaropen",FixscrollControl.onResize ,false);
+		window.removeEventListener("findbaropen" ,function(){FixscrollControl.onResize();} ,false);//bottombox
+		window.removeEventListener("fullscreen", function(){FixscrollControl.onResize();}, false);//fullscreen
 
 		fxslPref.removeObserver("extensions.fixscroll.defaultOn", this);
 
@@ -129,6 +128,8 @@ FixscrollControl = {
 	////////////////////////////////////////////////////////////////////////////////////
 	//listener method ( for tabbrowser)
 	////////////////////////////////////////////////////////////////////////////////////
+
+	//pref
 	observe: function(aSubject, aTopic, aData){
 		if ("nsPref:changed" != aTopic) return;
 		
@@ -186,12 +187,11 @@ FixscrollControl = {
 			this.start();
 			
 			//toolbar-button ON
-			var cu = document.getElementById("fixscroll-toolbar-button");
-			cu.setAttribute("fixscrollOn",true);
+			this.updateToolbar(true);
 		}
 	},
 
-	onTabSelected: function(e){
+	onTabSelected: function(){
 		var tab = gBrowser.selectedTab;
 		//Application.console.log("onTabSelected:" + tab.isFixscroll + ", " + tab.fixscroll + "," + tab.linkedPanel + "," + tab.tabIndex );
 
@@ -219,8 +219,7 @@ FixscrollControl = {
 		}
 
 		//toolbar-button 
-		var cu = document.getElementById("fixscroll-toolbar-button");
-		cu.setAttribute("fixscrollOn",tab.isFixscroll);
+		this.updateToolbar(tab.isFixscroll);
 	},
 	
 	////////////////////////////////////////////////////////////////////////////////////
@@ -228,14 +227,12 @@ FixscrollControl = {
 	////////////////////////////////////////////////////////////////////////////////////
 	start: function() {
 		//Application.console.log("start:" + gBrowser.selectedTab.linkedPanel);
-
 		var stack = this.notificationBox.childNodes[0];
-		var browser = this.browser;
-
 		var stackBox = document.getBoxObjectFor(stack);
 		var innerHeight = stackBox.height - this.SCROLL_WIDTH;
 		var innerWidth = stackBox.width - this.SCROLL_WIDTH;
 
+		var browser = this.browser;
 		browser.style.overflow = "hidden";
 		
 		// keep position(OFF -> ON)1. This should be before drawing.
@@ -249,26 +246,26 @@ FixscrollControl = {
 		this.scrollH.setAttribute("curpos", this.horizonPosition);
 		
 		//listener. After init.
-		window.addEventListener('resize', this, true);
-		browser.addEventListener("pageshow", this, true);
+		window.addEventListener('resize', this, false);
+		browser.addEventListener("pageshow", this, false);
 	},
 	
 	stop: function() {
 		//Application.console.log("stop:" + gBrowser.selectedTab.linkedPanel);
 
-		var stack = this.notificationBox.childNodes[0];
-		var browser = this.browser;
-
 		//listener revert
-		this.scrollV.removeEventListener('DOMAttrModified', this, true);
-		this.scrollH.removeEventListener('DOMAttrModified', this, true);
-		this.canvas.removeEventListener("mousemove", this, true);
-		this.canvas.removeEventListener("mouseover", this, true);
-		this.dBox.removeEventListener("mousemove", this, true);
+		this.scrollV.removeEventListener('DOMAttrModified', this, false);
+		this.scrollH.removeEventListener('DOMAttrModified', this, false);
+		this.canvas.removeEventListener("mousemove", this, false);
+		this.canvas.removeEventListener("mouseover", this, false);
+		this.dBox.removeEventListener("mousemove", this, false);
 
-		stack.removeEventListener('DOMMouseScroll', this, true);
-		window.removeEventListener('resize', this, true);
-		browser.removeEventListener("pageshow", this, true);
+		var stack = this.notificationBox.childNodes[0];
+		stack.removeEventListener('DOMMouseScroll', this, false);
+		window.removeEventListener('resize', this, false);
+
+		var browser = this.browser;
+		browser.removeEventListener("pageshow", this, false);
 
 		//addlister by init();
 		browser.contentDocument.documentElement.removeEventListener('DOMMouseScroll', this, false);
@@ -298,14 +295,14 @@ FixscrollControl = {
 
 	initPrev: function(){
 		//Application.console.log("seiriPrev:")
-		this.scrollV.removeEventListener('DOMAttrModified', this, true);
-		this.scrollH.removeEventListener('DOMAttrModified', this, true);
-		this.canvas.removeEventListener("mousemove", this, true);
-		this.canvas.removeEventListener("mouseover", this, true);
-		this.dBox.removeEventListener("mousemove", this, true);
+		this.scrollV.removeEventListener('DOMAttrModified', this, false);
+		this.scrollH.removeEventListener('DOMAttrModified', this, false);
+		this.canvas.removeEventListener("mousemove", this, false);
+		this.canvas.removeEventListener("mouseover", this, false);
+		this.dBox.removeEventListener("mousemove", this, false);
 
 		var stack = this.notificationBox.childNodes[0];
-		stack.removeEventListener('DOMMouseScroll', this, true);
+		stack.removeEventListener('DOMMouseScroll', this, false);
 		
 		stack.appendChild(this.scrollV);
 		stack.appendChild(this.scrollH);
@@ -316,14 +313,14 @@ FixscrollControl = {
 	
 	initLast: function(){
 		//Application.console.log("seiriLast:")
-		this.scrollV.addEventListener('DOMAttrModified', this, true);
-		this.scrollH.addEventListener('DOMAttrModified', this, true);
-		this.canvas.addEventListener("mousemove", this, true);
-		this.canvas.addEventListener("mouseover", this, true);
-		this.dBox.addEventListener("mousemove", this, true);
+		this.scrollV.addEventListener('DOMAttrModified', this, false);
+		this.scrollH.addEventListener('DOMAttrModified', this, false);
+		this.canvas.addEventListener("mousemove", this, false);
+		this.canvas.addEventListener("mouseover", this, false);
+		this.dBox.addEventListener("mousemove", this, false);
 		
 		var stack = this.notificationBox.childNodes[0];
-		stack.addEventListener('DOMMouseScroll', this, true);
+		stack.addEventListener('DOMMouseScroll', this, false);
 	},
 	
 	init: function(width, height){
@@ -334,12 +331,10 @@ FixscrollControl = {
 		this._innerWidth = width;
 		this._innerHeight = height;
 		
-		this.duplicateHeight = this.getDuplicateHeight();
+		this.duplicateHeight = this._duplicateHeight;
 		
 		var browser = this.browser;
-		var scale = this.scale;
-		//Application.console.log("init:" + width + "," + height + "," + "," + browser.contentTitle + "," + browser.contentWindow.scrollMaxY + "," + browser.contentWindow.scrollMaxX);
-		
+		//Application.console.log("init:" + width + "," + height + "," + "," + browser.contentTitle + "," + browser.contentWindow.scrollY + "," + browser.contentWindow.scrollX);
 		browser.top = 0;
 		browser.left = 0;
 		browser.height = height;
@@ -401,26 +396,39 @@ FixscrollControl = {
 		this.fixscroll_hack_browserOn(browser);
 
 		//スクロールがない場合は全面browserにする。
-		if( this.scrollV.hidden ){
-			this.isBrowserOver = true;
-		}
+		if( this.scrollV.hidden ){ this.isBrowserOver = true; }
 		this.displayBrowser();
 		
 		this.initLast();
+	},
+	
+	scrollEventOn: function(){
+		
+		//Application.console.log("scrollEventOn");
+		// to prevent 'scroll' event cyclic.
+		window.setTimeout( function(){ FixscrollControl._scrollEventOn();},300 );
+	},
+	//cannot call addEventListener in setTimeout;
+	_scrollEventOn: function(){
+		FixscrollControl.browser.contentWindow.addEventListener('scroll', this, false);
+	},
+	
+	scrollEventOff: function(){
+		//Application.console.log("scrollEventOff");
+		this.browser.contentWindow.removeEventListener('scroll', this, false);
 	},
 	
 	////////////////////////////////////////////////////////////////////////////////////
 	//listener method(for fixscroll)
 	////////////////////////////////////////////////////////////////////////////////////
 	handleEvent :function(aEvent) {
-		//Application.console.log(aEvent.type);
+		//Application.console.log(aEvent.type + " :" + this.fixPosition + "," + this.browser.contentWindow.scrollY + "," + this.scrollV.getAttribute("curpos"));
 		switch (aEvent.type)
 		{
 			case 'DOMAttrModified':
 				if(aEvent.attrName != "curpos") return;
 				
 				if(aEvent.currentTarget.getAttribute("orient") == "vertical"){
-					this.updateScrolledTime();
 					this.scrollBy(parseInt(this.scrollV.getAttribute("curpos")) - this.fixPosition - this.slidePosition);
 				}else{
 					var nextHorizonPosition = parseInt(this.scrollH.getAttribute("curpos"));
@@ -439,8 +447,6 @@ FixscrollControl = {
 				
 				if(!this.isFixscrollable(aEvent)) return;
 				
-				this.updateScrolledTime();
-				
 				var scale = this.scale;
 				var move = parseInt(aEvent.detail) * this.fontsize * scale;
 
@@ -453,7 +459,6 @@ FixscrollControl = {
 				return;
 			case 'mousemove':
 				//Application.console.log("mousemove");
-				this.scrollEventOff();
 				if(aEvent.target.id == this.canvas.id){
 					if(!this.scrollV.hidden){
 						this.isBrowserOver = !this.isBrowserOver;
@@ -465,7 +470,6 @@ FixscrollControl = {
 				return;
 			case 'mouseover':
 				//Application.console.log("mouseover");
-				this.scrollEventOff();
 				if(aEvent.target.id == this.canvas.id){
 					if(!this.scrollV.hidden){
 						this.isBrowserOver = !this.isBrowserOver;
@@ -477,6 +481,7 @@ FixscrollControl = {
 				//Application.console.log("resize" + aEvent.currentTarget + "," + aEvent.explicitOriginalTarget + "," +aEvent.originalTarget + "," + aEvent.target  );
 				if( aEvent.target == aEvent.currentTarget ){
 					this.onResize();
+					//Application.console.log("resize done");
 				}
 				return;
 			case 'pageshow':
@@ -492,19 +497,16 @@ FixscrollControl = {
 				this.init(this._innerWidth, this._innerHeight);
 				return;
 			case 'scroll':
-				if(this.hoge) return;
-
 				//Application.console.log("scroll:" + this.browser.contentWindow.scrollY);
 				var next = parseInt(this.browser.contentWindow.scrollY) - this.fixPosition - this.slidePosition;
-				if(next != 0 && this.canScrollTriger){
+				if(next != 0 && (new Date() - this.scrolledTime > 200)){//time is depend on enviroment. If PC is slow, this time will be more.
 					//Application.console.log(next);
-					this.updateScrolledTime();
 					this.scrollBy(next);
 				}
 				return;
 		}
 	},
-	
+
 	onKeydown: function(aEvent){
 		var ot = aEvent.explicitOriginalTarget;
 		if (ot.nodeName.toLowerCase()=="input" || ot.nodeName.toLowerCase()=="select" || 
@@ -560,13 +562,12 @@ FixscrollControl = {
 		aEvent.stopPropagation();
 	},
 	
+	//called by xul
 	onResize: function(){
 		//Application.console.log("onResize");
 		var tab = gBrowser.selectedTab;
 		if(! (tab.isFixscroll && tab.fixscroll) ) return;
 
-		var stack = FixscrollControl.notificationBox.childNodes[0];
-		
 		//accept small resize
 		FixscrollControl.canvasBox.hidden = true;
 		FixscrollControl.canvas.hidden = true;
@@ -582,6 +583,7 @@ FixscrollControl = {
 		browser.height = null;
 		browser.width = null;
 
+		var stack = FixscrollControl.notificationBox.childNodes[0];
 		var stackBox = document.getBoxObjectFor(stack);
 		var innerHeight = stackBox.height - FixscrollControl.SCROLL_WIDTH;
 		var innerWidth = stackBox.width - FixscrollControl.SCROLL_WIDTH;
@@ -598,16 +600,39 @@ FixscrollControl = {
 		FixscrollControl.init(innerWidth, innerHeight);
 	},
 	
+	isFixscrollable: function(aEvent){
+		//Application.console.log("c:" + aEvent.currentTarget + ", t:" + aEvent.target + ", o:" + aEvent.originalTarget + ", " + aEvent.originalTarget.nodeName.toLowerCase() );
+		switch (aEvent.originalTarget.nodeName.toLowerCase())
+		{
+			case 'html:canvas':
+			case 'box': //border or duplicateArea
+			case 'xul:thumb'://scrollbar
+			case 'xul:scrollbarbutton'://scrollbar
+			case 'xul:slider'://scrollbar
+			case 'xul:stack':
+				return true;
+		}
+
+		var node = this.findNodeToScroll(aEvent.originalTarget);
+		if( node 
+			&& (node.tagName.toLowerCase() == "body" || node.tagName.toLowerCase() == "html") ){
+			return true;
+		}
+		return false;
+	},
+	
 	////////////////////////////////////////////////////////////////////////////////////
 	//scroll method
 	////////////////////////////////////////////////////////////////////////////////////
 	scrollBy: function(length, altKey){
-		this.scrollEventOff();
+		//update scrolled time.
+		this.scrolledTime = new Date();
+		//this.scrollEventOff();
 
 		var maxpos = parseInt(this.scrollV.getAttribute("maxpos"));
 		var nextSlidePosition = this.slidePosition;
 		var nextFixPosition = this.fixPosition;
-		var windowHeight = this.getWindowHeight();
+		var windowHeight = this.windowHeight;
 
 		//TODO: 処理が重くならないように工夫したい。
 		var browser = this.browser;
@@ -654,11 +679,10 @@ FixscrollControl = {
 		}
 		this.border.hidden = this.scrollV.hidden;
 		this.dBox.hidden = this.scrollV.hidden;
-		
-		FixscrollControl.scrollEventOn();
 	},
 	
 	displayBrowser: function(){
+		this.scrollEventOff();
 		//TODO: temporary avoid error.
 		if(!this.browser.contentWindow.scrollToOrg) return;
 		
@@ -667,6 +691,7 @@ FixscrollControl = {
 		}else{
 			this.fixScrollBrowserUnder();
 		}
+		FixscrollControl.scrollEventOn();
 	},
 	
 	// scroll over:browser, under:canvas
@@ -676,13 +701,13 @@ FixscrollControl = {
 
 		var scale = this.scale;
 		var currentPosition = this.fixPosition;
-		var windowHeight = this.getWindowHeight();
+		var windowHeight = this.windowHeight;
 		
 		//control height
 		var zeroBrowser = this.setBrowserHeight( this.scrollV.hidden ? windowHeight : currentPosition % windowHeight );
 		this.canvas.height= windowHeight - browser.height + this.duplicateHeight;
 		this.canvasBox.height = this.canvas.height;
-		//Application.console.log("windowHeight: " + windowHeight + ", browser.height:" + browser.height + ",this.canvas.height: " + this.canvas.height);
+		//Application.console.log("windowHeight: " + windowHeight + ", browser.height:" + browser.height + ",this.canvas.height: " + this.canvas.height + "," + currentPosition);
 
 		//control position
 		browser.top = ( zeroBrowser == 0 ? 0 : windowHeight + 100);
@@ -707,7 +732,7 @@ FixscrollControl = {
 		var browser = this.browser;
 
 		var currentPosition = this.fixPosition;
-		var windowHeight = this.getWindowHeight();
+		var windowHeight = this.windowHeight;
 		
 		//control height
 		this.canvas.height = Math.max(1, currentPosition % windowHeight); //canvas min size = 1;
@@ -716,17 +741,17 @@ FixscrollControl = {
 		var maxpos = parseInt(this.scrollV.getAttribute("maxpos"));
 		var spaceHeight = Math.max(0, windowHeight + this.duplicateHeight - this.canvas.height - ( maxpos + windowHeight - currentPosition - this.slidePosition ) + 1 );//adjust canvas height
 
-		this.setBrowserHeight( windowHeight - this.canvas.height + this.duplicateHeight - spaceHeight );
-		//Application.console.log("windowHeight: " + windowHeight + ", browser.height:" + browser.height + ",this.canvas.height: " + this.canvas.height);
+		this.setBrowserHeight( windowHeight - currentPosition % windowHeight + this.duplicateHeight - spaceHeight );
+		//Application.console.log("windowHeight: " + windowHeight + ", browser.height:" + browser.height + ",this.canvas.height: " + this.canvas.height + "," + currentPosition);
 
 		//control position
 		this.canvasBox.top = 0;
-		browser.top = this.canvas.height;
+		browser.top = currentPosition % windowHeight;
 		this.border.top = currentPosition % windowHeight;
 
 		//control scroll position ( This must be after control height in browser. )
 		var overPosition = Math.ceil(currentPosition / windowHeight) * windowHeight + this.slidePosition;
-		var underPosition = currentPosition + this.slidePosition + (currentPosition % windowHeight == 0 ? 1 : 0);
+		var underPosition = currentPosition + this.slidePosition;// + (currentPosition % windowHeight == 0 ? 1 : 0);
 
 		var ctx = this.canvas.getContext("2d");
 		var scale = this.scale;
@@ -735,18 +760,13 @@ FixscrollControl = {
 		
 		browser.contentWindow.scrollToOrg(this.horizonPosition/scale,underPosition / scale);
 	},
-	
 	////////////////////////////////////////////////////////////////////////////////////
 	//util method
 	////////////////////////////////////////////////////////////////////////////////////
-	getWindowHeight: function(){
-		return this._innerHeight - this.duplicateHeight + (this.scrollH.hidden ? this.SCROLL_WIDTH : 0);
-	},
-
 	//avoid 0 height. for keep browser content.
 	setBrowserHeight: function(_height){
 		var browser = this.browser;
-		//browser can change only after set null
+		//browser height can be changed only after set null
 		browser.left = null;
 		browser.left = 0;
 		var zeroHeight = (_height == 0 ? 1 : 0);
@@ -754,6 +774,23 @@ FixscrollControl = {
 		return zeroHeight;
 	},
 	
+	minMax: function( input ,minLimit, maxLimit){
+		if( input < minLimit ) return minLimit;
+		if( input > maxLimit ) return maxLimit;
+		return input;
+	},
+	
+	updateToolbar: function(on){
+		var cu = document.getElementById("fixscroll-toolbar-button");
+		cu.setAttribute("fixscrollOn",on);
+	},
+	
+	//getter
+	
+	get windowHeight(){
+		return this._innerHeight - this.duplicateHeight + (this.scrollH.hidden ? this.SCROLL_WIDTH : 0);
+	},
+
 	get scale(){
 		var winUtils = window.content.QueryInterface(Ci.nsIInterfaceRequestor).getInterface(Ci.nsIDOMWindowUtils);
 		return winUtils.screenPixelsPerCSSPixel;
@@ -766,10 +803,6 @@ FixscrollControl = {
 		}catch(e){}
 		//FIX ME. load default font size
 		return 16;
-	},
-	
-	get pageHeight(){
-		return this._innerHeight - this.fontsize - this.duplicateHeight;
 	},
 	
 	get maxHeight(){
@@ -799,62 +832,13 @@ FixscrollControl = {
 		}
 		return page;
 	},
-	getDuplicateHeight: function(){
-		return fxslPref.getIntPref("extensions.fixscroll.duplicateHeight");
-	},
-	isFixscrollable: function(aEvent){
-		//Application.console.log("c:" + aEvent.currentTarget + ", t:" + aEvent.target + ", o:" + aEvent.originalTarget + ", " + aEvent.originalTarget.nodeName.toLowerCase() );
-		var isXUL = aEvent.originalTarget.nodeName.toLowerCase() == "html:canvas" 
-					|| aEvent.originalTarget.nodeName.toLowerCase() == "box";
-		if(isXUL) return true;
-
-		var node = this.findNodeToScroll(aEvent.originalTarget);
-		if( node 
-			&& (node.tagName.toLowerCase() == "body" || node.tagName.toLowerCase() == "html") ){
-			return true;
-		}
-		return false;
-	},
-	get browser(){
-		return gBrowser.selectedTab.linkedBrowser;
-	},
-	get notificationBox(){
-		return document.getElementById(gBrowser.selectedTab.linkedPanel);
-	},
+	get pageHeight(){ return this._innerHeight - this.fontsize - this.duplicateHeight; },
+	get _duplicateHeight(){ return fxslPref.getIntPref("extensions.fixscroll.duplicateHeight"); },
+	get isFixScrollModeOn(){ return gBrowser.selectedTab.isFixscroll; },
 	
-	minMax: function( input ,minLimit, maxLimit){
-		if( input < minLimit ) return minLimit;
-		if( input > maxLimit ) return maxLimit;
-		return input;
-	},
-	
-	scrollEventOn: function(){
-		//Application.console.log("scrollEventOn");
-		window.setTimeout(
-			function(){
-				FixscrollControl._scrollEventOn();
-			},300);
-		
-	},
-	
-	//cannot call addEventListener in setTimeout;
-	_scrollEventOn: function(){
-		FixscrollControl.browser.contentWindow.addEventListener('scroll', this, false);
-	},
-	
-	scrollEventOff: function(){
-		//Application.console.log("scrollEventOff");
-		this.browser.contentWindow.removeEventListener('scroll', this, false);
-	},
-	
-	//time is depend on enviroment. If PC is slow, this time will be more.
-	get canScrollTriger(){
-		return new Date() - this.scrolledTime > 200;
-	},
-	
-	updateScrolledTime: function(){
-		this.scrolledTime = new Date();
-	},
+	//element
+	get browser(){ return gBrowser.selectedTab.linkedBrowser; },
+	get notificationBox(){ return document.getElementById(gBrowser.selectedTab.linkedPanel);},
 	
 	//data
 	get fixPosition(){return gBrowser.selectedTab.fixscroll.fixPosition;},
@@ -916,6 +900,7 @@ FixscrollControl.findNodeToScroll = function (initialNode){
 	}
 
 	function scrollCursorType(neededW, availW, neededH, availH, scrollBarSize) {
+		//Application.console.log("scrollCursorType:" + neededW+","+ availW+","+neededH+","+availH+","+scrollBarSize);
 		if (neededW <= availW && neededH <= availH) return 3;
 		if (neededW > availW && neededH > availH) return 0;
 		if (neededW > availW) return ((neededH <= (availH - scrollBarSize)) - 0) << 1;  // 0 or 2
@@ -930,10 +915,14 @@ FixscrollControl.findNodeToScroll = function (initialNode){
 	var insertionNode = (docEl) ? docEl : targetDoc;
 	var clientFrame = targetDoc.defaultView;
 	if (docEl && docEl.nodeName.toLowerCase() == "html") { // walk the tree up looking for something to scroll
-		if (clientFrame.frameElement) return null;
-		var bodies = docEl.getElementsByTagName("body");
-		if (!bodies || !bodies.length) 
+		if (clientFrame.frameElement){
+			if(clientFrame.frameElement.scrolling == "no"){
+				return FixscrollControl.findNodeToScroll(clientFrame.frameElement.ownerDocument.documentElement);
+			}
 			return null;
+		}
+		var bodies = docEl.getElementsByTagName("body");
+		if (!bodies || !bodies.length) return null;
 		var bodyEl = bodies[0];
 		if (initialNode == docEl) nextNode = bodyEl;
 		else if (initialNode.nodeName.toLowerCase() == "select") nextNode = initialNode.parentNode;
@@ -949,14 +938,12 @@ FixscrollControl.findNodeToScroll = function (initialNode){
 					realWidth = currNode.clientWidth + getStyle(currNode, "border-left-width") + getStyle(currNode, "border-right-width");
 					realHeight = currNode.clientHeight + getStyle(currNode, "border-top-width") + getStyle(currNode, "border-bottom-width");
 					scrollType = scrollCursorType(currNode.scrollWidth, realWidth, currNode.scrollHeight, realHeight, 0);
-					if (scrollType != 3) {
+					//Application.console.log("scrollType:" + scrollType);
+					//if (scrollType != 3) {
 						if (scrollType==0 || scrollType==1){
 							return currNode;
 						}
-						if (scrollType==0 || scrollType==2){
-							return null;
-						}
-					}
+					//}
 				}
 				nextNode = currNode.parentNode;
 			}
@@ -973,4 +960,3 @@ FixscrollControl.findNodeToScroll = function (initialNode){
 
 window.addEventListener("load", function () { FixscrollControl.onLoad(); }, false);
 window.addEventListener("unload", function () { FixscrollControl.onUnload(); }, false);
-

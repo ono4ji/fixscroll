@@ -1,0 +1,16 @@
+chrome.manifest
+install.rdf
+chrome\content\contextMenu.js
+chrome\content\functionfixscroll_hack.js
+chrome\content\intro.xul
+chrome\content\options.xul
+chrome\content\overlay.js
+chrome\content\overlay.xul
+chrome\locale\en-US\fixscroll.dtd
+chrome\locale\en-US\fixscroll.properties
+chrome\locale\ja-JP\fixscroll.dtd
+chrome\locale\ja-JP\fixscroll.properties
+chrome\skin\icon.png
+chrome\skin\overlay.css
+chrome\skin\toolbar-button.png
+defaults\preferences\prefs.js

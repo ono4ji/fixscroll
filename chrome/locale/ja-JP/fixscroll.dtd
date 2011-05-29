@@ -1,5 +1,6 @@
 <!ENTITY fixscroll.overlay.toollabel "FixScroll Button">
 <!ENTITY fixscroll.overlay.tooltip "Toggle FixScroll Mode">
+<!ENTITY fixscroll.overlay.context.heretotop "ここを最上部に表示する">
 
 <!ENTITY fixscroll.option.default "常にFixscrollモードにする">
 <!ENTITY fixscroll.option.duplicateHeight "重複エリアの高さ(pixel)">

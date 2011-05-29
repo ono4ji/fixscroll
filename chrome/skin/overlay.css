@@ -33,3 +33,8 @@
 {
   -moz-image-region: rect(24px 80px 40px 64px);
 }
+
+menuitem#fixscroll-heretotop {
+ list-style-image: url("chrome://fixscroll/skin/toolbar-button.png");
+  -moz-image-region: rect( 0px 40px 16px 24px);
+}

@@ -1,5 +1,6 @@
 <!ENTITY fixscroll.overlay.toollabel "FixScroll Button">
 <!ENTITY fixscroll.overlay.tooltip "Toggle FixScroll Mode">
+<!ENTITY fixscroll.overlay.context.heretotop "Here To Top">
 
 <!ENTITY fixscroll.option.default "always FixScroll Mode ON">
 <!ENTITY fixscroll.option.duplicateHeight "Duplicate Area Height(pixel)">
