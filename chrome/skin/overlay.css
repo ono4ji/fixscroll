@@ -38,3 +38,8 @@ menuitem#fixscroll-heretotop {
  list-style-image: url("chrome://fixscroll/skin/toolbar-button.png");
   -moz-image-region: rect( 0px 40px 16px 24px);
 }
+.borderBox
+{
+  background: #ccc;
+  border-bottom: thin solid #777;
+}

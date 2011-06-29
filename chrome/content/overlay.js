@@ -1,11 +1,17 @@
-const fxslVERSION = "0.4";
+if ("undefined" == typeof(fxslVERSION)  
+	&& "undefined" == typeof(fxslPref) 
+	&& "undefined" == typeof(FixscrollData) 
+	&& "undefined" == typeof(FixscrollControl)
+	) {
+
+const fxslVERSION = "0.5";
 
 const fxslPref = Components.classes["@mozilla.org/preferences-service;1"].getService(Components.interfaces.nsIPrefService).getBranch(null);;
 
 var FixscrollData = function(){
 	this.fixPosition = 0;
 	this.slidePosition = 0;
-	this.isBrowserOver = true;//false;//
+	this.isBrowserOver = false;//true;//
 	this.horizonPosition= 0;
 	this._innerWidth= 0;
 	this._innerHeight= 0;
@@ -55,7 +61,7 @@ FixscrollControl = {
 			tab.isFixscroll = true;
 			tab.fixscroll = new FixscrollData();
 			
-			this.start();
+			this.start(true);
 		}else{
 			var cu = document.getElementById("fixscroll-toolbar-button");
 			cu.setAttribute("fixscrollOn", false);
@@ -111,8 +117,7 @@ FixscrollControl = {
 		this.border.left = 0;
 		this.border.height = 2;
 		this.border.width = innerWidth;
-		this.border.style.backgroundColor = "blue";
-		this.border.style.opacity = 0.5;
+		this.border.classList.add("borderBox");
 		
 		//duplicateArea
 		this.dBox = document.createElement("box");
@@ -225,7 +230,7 @@ FixscrollControl = {
 	////////////////////////////////////////////////////////////////////////////////////
 	//fixscroll ON/OFF method
 	////////////////////////////////////////////////////////////////////////////////////
-	start: function() {
+	start: function(isOnload) {
 		//Application.console.log("start:" + gBrowser.selectedTab.linkedPanel);
 		var stack = this.notificationBox.childNodes[0];
 		var stackBox = document.getBoxObjectFor(stack);
@@ -233,13 +238,12 @@ FixscrollControl = {
 		var innerWidth = stackBox.width - this.SCROLL_WIDTH;
 
 		var browser = this.browser;
-		browser.style.overflow = "hidden";
 		
 		// keep position(OFF -> ON)1. This should be before drawing.
 		this.fixPosition = browser.contentWindow.scrollY;
 		this.horizonPosition= browser.contentWindow.scrollX;
 		
-		this.init(innerWidth, innerHeight);
+		this.init(innerWidth, innerHeight, isOnload);
 		
 		// keep position(OFF -> ON)2. This should be after define scroll length.
 		this.scrollV.setAttribute("curpos", this.fixPosition);
@@ -273,7 +277,7 @@ FixscrollControl = {
 		this.scrollEventOff();
 
 		//element revert
-		browser.style.overflow = null;
+		this.changeOverflow(browser, null);
 		browser.top = null;
 		browser.left = null;
 		browser.height = null;
@@ -323,7 +327,7 @@ FixscrollControl = {
 		stack.addEventListener('DOMMouseScroll', this, false);
 	},
 	
-	init: function(width, height){
+	init: function(width, height, isOnload){
 		this.initPrev();
 		height = (height > 0 ? height : 100);
 		width = (width > 0 ? width : 100);
@@ -339,6 +343,11 @@ FixscrollControl = {
 		browser.left = 0;
 		browser.height = height;
 		browser.width = width;
+		if(!isOnload){
+			// if onload here don't work. maybe before load browser.
+			this.changeOverflow(browser, "hidden"); 
+			//why here : etc... onload->onResize, addTab, all event must through here.
+		}
 		
 		var maxWidth = browser.contentWindow.scrollMaxX;
 		var maxHeight = (browser.contentWindow.scrollMaxY < 5 ? 0 : this.maxHeight);//ideal(== 0) but google map is 3.
@@ -396,7 +405,7 @@ FixscrollControl = {
 		this.fixscroll_hack_browserOn(browser);
 
 		//スクロールがない場合は全面browserにする。
-		if( this.scrollV.hidden ){ this.isBrowserOver = true; }
+		//if( this.scrollV.hidden ){ this.isBrowserOver = true; }
 		this.displayBrowser();
 		
 		this.initLast();
@@ -577,7 +586,6 @@ FixscrollControl = {
 		FixscrollControl.dBox.hidden = true;
 		//(browser.hidden = true) makes flash reset.
 		var browser = FixscrollControl.browser;
-		browser.style.overflow = null;
 		browser.top = null;
 		browser.left = null;
 		browser.height = null;
@@ -595,7 +603,6 @@ FixscrollControl = {
 		FixscrollControl.scrollH.hidden = null;
 		FixscrollControl.border.hidden = null;
 		FixscrollControl.dBox.hidden = null;
-		browser.style.overflow = "hidden";
 		
 		FixscrollControl.init(innerWidth, innerHeight);
 	},
@@ -772,6 +779,19 @@ FixscrollControl = {
 		var zeroHeight = (_height == 0 ? 1 : 0);
 		browser.height= _height + zeroHeight;
 		return zeroHeight;
+	},
+	
+	//firefox5+ does not work overflow normally
+	changeOverflow: function(browser, _overflow){
+		//if property is same, do nothing
+		if(browser.style.overflow != _overflow){
+			browser.style.overflow = _overflow;
+			//FIXME: this way makes flash reload.
+			//redisplay -> work
+			browser.hidden = true;
+			browser.getBoundingClientRect();//I don't know why it needs.
+			browser.hidden = null;
+		}
 	},
 	
 	minMax: function( input ,minLimit, maxLimit){
@@ -960,3 +980,4 @@ FixscrollControl.findNodeToScroll = function (initialNode){
 
 window.addEventListener("load", function () { FixscrollControl.onLoad(); }, false);
 window.addEventListener("unload", function () { FixscrollControl.onUnload(); }, false);
+}

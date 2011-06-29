@@ -1,67 +1,73 @@
+if ( "undefined" != typeof(FixscrollControl)
+	&& "undefined" == typeof(FixscrollControl.fixscroll_hack_load)
+	&& "undefined" == typeof(FixscrollControl.fixscroll_hack_unload)
+	&& "undefined" == typeof(FixscrollControl.fixscroll_hack_browserOn)
+	&& "undefined" == typeof(FixscrollControl.fixscroll_hack_browserOff)
+	) {
+
 FixscrollControl.fixscroll_hack_load = function() {
 	//when sidebarToggled, resize fixscroll
-	var source = toggleSidebar.toSource();
-	eval('toggleSidebar = '
-		+ source.replace('return;', ' FixscrollControl.onResize(); $&')
-		  .replace(/(\}\)?)$/, ' FixscrollControl.onResize(); $&')
-	);
+	FixscrollControl._org_toggleSidebar = toggleSidebar;
+	toggleSidebar = function(){
+		var result = FixscrollControl._org_toggleSidebar.apply(gBrowser, arguments);
+		try { FixscrollControl.onResize(); }catch (ex){}
+		return result;
+	};
 	
-	var findbarSource = gFindBar.close.toSource();
-	eval('gFindBar.close = '
-		+ findbarSource.replace(/(\}?)$/, ' FixscrollControl.onResize(); $&')
-	);
+	FixscrollControl._org_gFindBar_close = gFindBar.close;
+	gFindBar.close = function(){
+		var result = FixscrollControl._org_gFindBar_close.apply(gFindBar, arguments);
+		try { FixscrollControl.onResize(); }catch (ex){}
+		return result;
+	};
 
-	var toolbarSource = setToolbarVisibility.toSource();
-	eval('setToolbarVisibility = '
-		+ toolbarSource.replace(/(\}?)$/, ' FixscrollControl.onResize(); $&')
-	);
-	
-	var zoomApplySource = FullZoom._applySettingToPref.toSource();
-	eval('FullZoom._applySettingToPref = '
-		+ zoomApplySource.replace(/(\}\)?)$/, ' FixscrollControl.onResize(); $&')
-	);
+	FixscrollControl._org_setToolbarVisibility = setToolbarVisibility;
+	setToolbarVisibility = function(){
+		var result = FixscrollControl._org_setToolbarVisibility.apply(gBrowser, arguments);
+		try { FixscrollControl.onResize(); }catch (ex){}
+		return result;
+	};
 
-	var zoomResetSource = FullZoom.reset.toSource();
-	eval('FullZoom.reset = '
-		+ zoomResetSource.replace(/(\}\)?)$/, ' FixscrollControl.onResize(); $&')
-	);
-	
-	var fullScreenSource = FullScreen.mouseoverToggle.toSource();
-	eval('FullScreen.mouseoverToggle = '
-		+ fullScreenSource.replace(/(\}\)?)$/, ' FixscrollControl.onResize(); $&')
-	);
+	FixscrollControl._org_FullZoom__applySettingToPref = FullZoom._applySettingToPref;
+	FullZoom._applySettingToPref = function(){
+		var result = FixscrollControl._org_FullZoom__applySettingToPref.apply(FullZoom, arguments);
+		try { FixscrollControl.onResize(); }catch (ex){}
+		return result;
+	};
+
+	FixscrollControl._org_FullZoom_reset = FullZoom.reset;
+	FullZoom.reset = function(){
+		var result = FixscrollControl._org_FullZoom_reset.apply(FullZoom, arguments);
+		try { FixscrollControl.onResize(); }catch (ex){}
+		return result;
+	};
+
+	FixscrollControl._org_FullScreen_mouseoverToggle = FullScreen.mouseoverToggle;
+	FullScreen.mouseoverToggle = function(){
+		var result = FixscrollControl._org_FullScreen_mouseoverToggle.apply(FullScreen, arguments);
+		try { FixscrollControl.onResize(); }catch (ex){}
+		return result;
+	};
 }
 
 FixscrollControl.fixscroll_hack_unload = function() {
-	var source = toggleSidebar.toSource();
-	eval('toggleSidebar = '
-		+ source.replace('FixscrollControl.onResize();','')
-	);
-
-	var findbarSource = gFindBar.close.toSource();
-	eval('gFindBar.close = '
-		+ findbarSource.replace('FixscrollControl.onResize();', '')
-	);
-
-	var toolbarSource = setToolbarVisibility.toSource();
-	eval('setToolbarVisibility = '
-		+ toolbarSource.replace('FixscrollControl.onResize();', '')
-	);
+	toggleSidebar = FixscrollControl._org_toggleSidebar;
+	FixscrollControl._org_toggleSidebar = null;
 	
-	var zoomApplySource = FullZoom._applySettingToPref.toSource();
-	eval('FullZoom._applySettingToPref = '
-		+ zoomApplySource.replace('FixscrollControl.onResize();', '')
-	);
+	gFindBar.close = FixscrollControl._org_gFindBar_close;
+	FixscrollControl._org_gFindBar_close = null;
+	
+	setToolbarVisibility = FixscrollControl._org_setToolbarVisibility;
+	FixscrollControl._org_setToolbarVisibility = null;
+	
+	FullZoom._applySettingToPref = FixscrollControl._org_FullZoom__applySettingToPref;
+	FixscrollControl._org_FullZoom__applySettingToPref = null;
+	
+	FullZoom.reset = FixscrollControl._org_FullZoom_reset;
+	FixscrollControl._org_FullZoom_reset = null;
 
-	var zoomResetSource = FullZoom.reset.toSource();
-	eval('FullZoom.reset = '
-		+ zoomResetSource.replace('FixscrollControl.onResize();', '')
-	);
-
-	var fullScreenSource = FullScreen.mouseoverToggle.toSource();
-	eval('FullScreen.mouseoverToggle = '
-		+ fullScreenSource.replace('FixscrollControl.onResize();', '')
-	);
+	FullScreen.mouseoverToggle = FixscrollControl._org_FullScreen_mouseoverToggle;
+	FixscrollControl._org_FullScreen_mouseoverToggle = null;
 }
 
 FixscrollControl.fixscroll_hack_browserOn = function(browser) {
@@ -75,6 +81,8 @@ FixscrollControl.fixscroll_hack_browserOn = function(browser) {
 					FixscrollControl.scrollH.setAttribute("curpos", x);
 					var dy = parseInt(y) - (tab.fixscroll.fixPosition + tab.fixscroll.slidePosition);
 					FixscrollControl.scrollBy(dy,false);
+				}else{
+					browser.contentWindow.scrollToOrg(x,y);
 				}
 			};
 	}
@@ -86,6 +94,8 @@ FixscrollControl.fixscroll_hack_browserOn = function(browser) {
 				var tab = gBrowser.selectedTab;
 				if(tab.isFixscroll && tab.fixscroll){
 					FixscrollControl.scrollBy(FixscrollControl.pageValue * page, false);
+				}else{
+					browser.contentWindow.scrollByPagesOrg(page);
 				}
 			};
 	}
@@ -97,6 +107,8 @@ FixscrollControl.fixscroll_hack_browserOn = function(browser) {
 				var tab = gBrowser.selectedTab;
 				if(tab.isFixscroll && tab.fixscroll){
 					FixscrollControl.scrollBy(FixscrollControl.cursorValue * line, false);
+				}else{
+					browser.contentWindow.scrollByLinesOrg(line);
 				}
 			};
 	}
@@ -121,4 +133,6 @@ FixscrollControl.fixscroll_hack_browserOff = function() {
 			browser.contentWindow.scrollByLinesOrg = null;
 		}
 	}
+}
+
 }
