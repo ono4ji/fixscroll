@@ -13,4 +13,10 @@ chrome\locale\ja-JP\fixscroll.properties
 chrome\skin\icon.png
 chrome\skin\overlay.css
 chrome\skin\toolbar-button.png
+chrome\skin\arrow.png
 defaults\preferences\prefs.js
+modules\animationManager.js
+modules\jstimer.jsm
+modules\license.ja.txt
+modules\license.txt
+modules\namespace.jsm

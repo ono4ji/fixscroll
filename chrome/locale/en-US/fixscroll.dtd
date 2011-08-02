@@ -9,6 +9,7 @@
 <!ENTITY fixscroll.option.page.value "Keyboard PageUP/PageDOWN scroll mount(pixel)">
 <!ENTITY fixscroll.option.page.default "*if you set 0, set default (a half of page)">
 <!ENTITY fixscroll.option.title "FixScroll Prefference">
+<!ENTITY fixscroll.option.excludeUrls.value "exclude URL (RegExp,';' separated)">
 
 <!ENTITY fixscroll.intro.title "FixScroll Startup Wizard">
 <!ENTITY fixscroll.intro.notes "Welcome to the Fixscroll Startup Wizard. This will let you quickly configure the extension for your computer.">

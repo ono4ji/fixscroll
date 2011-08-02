@@ -4,7 +4,7 @@ if ("undefined" == typeof(fxslVERSION)
 	&& "undefined" == typeof(FixscrollControl)
 	) {
 
-const fxslVERSION = "0.5";
+const fxslVERSION = "0.6";
 
 const fxslPref = Components.classes["@mozilla.org/preferences-service;1"].getService(Components.interfaces.nsIPrefService).getBranch(null);;
 
@@ -55,17 +55,11 @@ FixscrollControl = {
 		
 		this.initElement();
 		
-		if(fxslPref.getBoolPref("extensions.fixscroll.defaultOn")){
-			//mode ON@first TAB
-			var tab = gBrowser.selectedTab;
-			tab.isFixscroll = true;
-			tab.fixscroll = new FixscrollData();
-			
-			this.start(true);
-		}else{
-			var cu = document.getElementById("fixscroll-toolbar-button");
-			cu.setAttribute("fixscrollOn", false);
-		}
+		//mode ON@first TAB
+		var tab = gBrowser.selectedTab;
+		tab.isFixscroll = fxslPref.getBoolPref("extensions.fixscroll.defaultOn");
+		
+		this.startStop(true);
 	},
 	
 	onUnload: function(){
@@ -127,7 +121,7 @@ FixscrollControl = {
 		this.dBox.height = this.duplicateHeight;
 		this.dBox.width = innerWidth;
 		this.dBox.style.backgroundColor = "gray";
-		this.dBox.style.opacity = 0.5;
+		this.dBox.style.opacity = 0.3;
 	},
 	
 	////////////////////////////////////////////////////////////////////////////////////
@@ -141,59 +135,20 @@ FixscrollControl = {
 		var defaultOn = fxslPref.getBoolPref("extensions.fixscroll.defaultOn");
 		//Application.console.log("updateMode:" + defaultOn);
 		
-		//update selected
-		var tab = gBrowser.selectedTab;
-		if(defaultOn){
-			//go ON
-			if(!tab.fixscroll){
-				tab.fixscroll = new FixscrollData();
-				this.start();
-			}
-		}else{
-			//go OFF
-			if(tab.fixscroll){
-				this.stop();
-				tab.fixscroll = null;
-			}
-		}
-		
 		//update all flag
 		var tabs = gBrowser.tabContainer.childNodes;
 		for(var i=0; i< tabs.length;i++){
 			tabs[i].isFixscroll = defaultOn;
 		}
 
-		var cu = document.getElementById("fixscroll-toolbar-button");
-		cu.setAttribute("fixscrollOn",defaultOn);
+		this.startStop();
 	},
 
 	onToolbarButtonCommand: function(e) {
 		var tab = gBrowser.selectedTab;
 		//Application.console.log("onToolbarButtonCommand:" + tab.isFixscroll);
-
-		if(tab.isFixscroll){
-			//go OFF
-			tab.isFixscroll = false;
-			if(tab.fixscroll){
-				this.stop();
-				tab.fixscroll = null;
-			}
-			
-			//toolbar-button OFF
-			var cu = document.getElementById("fixscroll-toolbar-button");
-			cu.setAttribute("fixscrollOn",false);
-		}else{
-			//go ON
-			tab.isFixscroll = true;
-			
-			//オブジェクトの追加
-			tab.fixscroll = new FixscrollData();
-			//Application.console.log("fixPosition1: " + box.fixscroll.fixPosition);
-			this.start();
-			
-			//toolbar-button ON
-			this.updateToolbar(true);
-		}
+		tab.isFixscroll = !tab.isFixscroll;
+		this.startStop();
 	},
 
 	onTabSelected: function(){
@@ -202,35 +157,44 @@ FixscrollControl = {
 
 		//no setting -> use default value
 		if(tab.isFixscroll == undefined){
-			var defaultOn = fxslPref.getBoolPref("extensions.fixscroll.defaultOn");
-			tab.isFixscroll = defaultOn;
-		}
-		
-		if(tab.isFixscroll && !tab.fixscroll){
-			//defaultOn == true and show not yet
-			//Application.console.log("onTabSelected@ onLoad");
-			tab.fixscroll = new FixscrollData();
-			FixscrollControl.start();
-		}else if(!tab.isFixscroll){
-			//defaultOn == false
-			//Application.console.log("onTabSelected@ onUnLoad" + box.fixscroll);
-			if(tab.fixscroll){
-				FixscrollControl.stop();
-				tab.fixscroll = null;
-			}
-		}else{
-			//Application.console.log("onTabSelected@ resize");
-			FixscrollControl.onResize();
+			tab.isFixscroll = fxslPref.getBoolPref("extensions.fixscroll.defaultOn");
 		}
 
-		//toolbar-button 
-		this.updateToolbar(tab.isFixscroll);
+		//開始済みの時はリサイズする。TODO:他の方法を検討。
+		if(tab.isFixscroll && tab.fixscroll){
+			//Application.console.log("onTabSelected@ resize");
+			this.onResize();
+		}else{
+			this.startStop();
+		}
 	},
 	
 	////////////////////////////////////////////////////////////////////////////////////
 	//fixscroll ON/OFF method
 	////////////////////////////////////////////////////////////////////////////////////
+	startStop: function(isOnload){
+		var tab = gBrowser.selectedTab;
+		if(tab.isFixscroll){
+			this.start(isOnload);
+		}else{
+			this.stop();
+		}
+		//toolbar-button 
+		this.updateToolbar(tab.isFixscroll);
+	},
+	
 	start: function(isOnload) {
+		var tab = gBrowser.selectedTab;
+		if(tab.fixscroll)return;
+		if(this.isExcludedUrl){
+			//Application.console.log("stopped");
+			this.stop(true);
+			this.browser.addEventListener("pageshow", this, false);
+			return;
+		}
+
+		tab.fixscroll = new FixscrollData();
+		
 		//Application.console.log("start:" + gBrowser.selectedTab.linkedPanel);
 		var stack = this.notificationBox.childNodes[0];
 		var stackBox = document.getBoxObjectFor(stack);
@@ -254,7 +218,9 @@ FixscrollControl = {
 		browser.addEventListener("pageshow", this, false);
 	},
 	
-	stop: function() {
+	stop: function(isExcludedUrl) {
+		var tab = gBrowser.selectedTab;
+		if(!tab.fixscroll) return;
 		//Application.console.log("stop:" + gBrowser.selectedTab.linkedPanel);
 
 		//listener revert
@@ -269,7 +235,8 @@ FixscrollControl = {
 		window.removeEventListener('resize', this, false);
 
 		var browser = this.browser;
-		browser.removeEventListener("pageshow", this, false);
+		if(!isExcludedUrl)
+			browser.removeEventListener("pageshow", this, false);
 
 		//addlister by init();
 		browser.contentDocument.documentElement.removeEventListener('DOMMouseScroll', this, false);
@@ -294,7 +261,12 @@ FixscrollControl = {
 		this.fixscroll_hack_browserOff();
 		
 		//keep position(ON -> OFF)
-		browser.contentWindow.scrollTo(this.horizonPosition, this.fixPosition + this.slidePosition);
+		if(!isExcludedUrl)
+			browser.contentWindow.scrollTo(this.horizonPosition, this.fixPosition + this.slidePosition);
+
+		var tab = gBrowser.selectedTab;
+		tab.fixscroll = null;
+		//Application.console.log("stop:end");
 	},
 
 	initPrev: function(){
@@ -335,8 +307,6 @@ FixscrollControl = {
 		this._innerWidth = width;
 		this._innerHeight = height;
 		
-		this.duplicateHeight = this._duplicateHeight;
-		
 		var browser = this.browser;
 		//Application.console.log("init:" + width + "," + height + "," + "," + browser.contentTitle + "," + browser.contentWindow.scrollY + "," + browser.contentWindow.scrollX);
 		browser.top = 0;
@@ -348,7 +318,30 @@ FixscrollControl = {
 			this.changeOverflow(browser, "hidden"); 
 			//why here : etc... onload->onResize, addTab, all event must through here.
 		}
+
+		this.adjustScrollBar(width, height);
 		
+		//dump
+		//Application.console.log("last_max" + maxHeight + ",height" + height + ", browser.contentWindow.scrollMaxY" + browser.contentWindow.scrollMaxY + ",browser.height" + browser.height);
+
+		//this lister will vanish when url changes. 
+		browser.contentDocument.documentElement.addEventListener('DOMMouseScroll', this, false);
+		browser.contentDocument.documentElement.addEventListener('keydown', this, false);
+		this.scrollEventOn();
+
+		this.fixscroll_hack_browserOn(browser);
+
+		//スクロールがない場合は全面browserにする。
+		//if( this.scrollV.hidden ){ this.isBrowserOver = true; }
+		this.displayBrowser();
+		
+		this.initLast();
+	},
+	
+	adjustScrollBar: function(width, height){
+		this.duplicateHeight = this._duplicateHeight;
+		var browser = this.browser;
+
 		var maxWidth = browser.contentWindow.scrollMaxX;
 		var maxHeight = (browser.contentWindow.scrollMaxY < 5 ? 0 : this.maxHeight);//ideal(== 0) but google map is 3.
 		this.scrollH.hidden = (maxWidth <= 0);
@@ -361,9 +354,10 @@ FixscrollControl = {
 		
 		var relationalWidth = width + (this.scrollV.hidden ? this.SCROLL_WIDTH : 0);
 		var relationalHeight = height + (this.scrollH.hidden ? this.SCROLL_WIDTH : 0);
+		
 		//rewrite
-		browser.height = relationalHeight;
-		browser.width = relationalWidth;
+		this.setBrowserHeight(relationalHeight);
+		this.setBrowserWidth(relationalWidth);
 		
 		this.canvasBox.top = 0;
 		this.canvasBox.left = 0;
@@ -393,29 +387,18 @@ FixscrollControl = {
 		this.dBox.top = height + (this.scrollH.hidden ? this.SCROLL_WIDTH : 0 ) - this.duplicateHeight;
 		this.dBox.height = this.duplicateHeight;
 		this.dBox.width = relationalWidth;
-
-		//dump
-		//Application.console.log("last_max" + maxHeight + ",height" + height + ", browser.contentWindow.scrollMaxY" + browser.contentWindow.scrollMaxY + ",browser.height" + browser.height);
-
-		//this lister will vanish when url changes. 
-		browser.contentDocument.documentElement.addEventListener('DOMMouseScroll', this, false);
-		browser.contentDocument.documentElement.addEventListener('keydown', this, false);
-		this.scrollEventOn();
-
-		this.fixscroll_hack_browserOn(browser);
-
-		//スクロールがない場合は全面browserにする。
-		//if( this.scrollV.hidden ){ this.isBrowserOver = true; }
-		this.displayBrowser();
-		
-		this.initLast();
 	},
-	
+
 	scrollEventOn: function(){
 		
 		//Application.console.log("scrollEventOn");
 		// to prevent 'scroll' event cyclic.
-		window.setTimeout( function(){ FixscrollControl._scrollEventOn();},300 );
+		//window.setTimeout( function(){ FixscrollControl._scrollEventOn();},300 );
+		//replace with nsITimer
+		var timer = Components.classes["@mozilla.org/timer;1"].createInstance(Components.interfaces.nsITimer);
+		timer.initWithCallback(function(){
+				FixscrollControl._scrollEventOn();
+			}, 300, Components.interfaces.nsITimer.TYPE_ONE_SHOT);
 	},
 	//cannot call addEventListener in setTimeout;
 	_scrollEventOn: function(){
@@ -431,6 +414,7 @@ FixscrollControl = {
 	//listener method(for fixscroll)
 	////////////////////////////////////////////////////////////////////////////////////
 	handleEvent :function(aEvent) {
+		//Application.console.log("handleEvent:" + aEvent.type);
 		//Application.console.log(aEvent.type + " :" + this.fixPosition + "," + this.browser.contentWindow.scrollY + "," + this.scrollV.getAttribute("curpos"));
 		switch (aEvent.type)
 		{
@@ -496,6 +480,12 @@ FixscrollControl = {
 			case 'pageshow':
 				var eventTab = aEvent.target;
 				//Application.console.log("pageshow:" + eventTab.tagName + "," + eventTab.persisted + "," + this.browser.contentWindow.scrollY + "," + this.browser.contentWindow.scrollX);
+				if(this.isExcludedUrl){
+					this.stop(true);
+					return;
+				}else{
+					this.startStop();
+				}
 				//var tab = gBrowser.selectedTab;
 				//if(! (tab.isFixscroll && tab.fixscroll) ) return;
 				this.fixPosition = this.browser.contentWindow.scrollY;
@@ -507,6 +497,12 @@ FixscrollControl = {
 				return;
 			case 'scroll':
 				//Application.console.log("scroll:" + this.browser.contentWindow.scrollY);
+				//TODO: 他のやり方を考える
+				//データがないのに、イベント発生していたら、そのイベントを停止する。
+				if(!gBrowser.selectedTab.fixscroll){
+					this.scrollEventOff();
+					return;
+				}
 				var next = parseInt(this.browser.contentWindow.scrollY) - this.fixPosition - this.slidePosition;
 				if(next != 0 && (new Date() - this.scrolledTime > 200)){//time is depend on enviroment. If PC is slow, this time will be more.
 					//Application.console.log(next);
@@ -634,7 +630,6 @@ FixscrollControl = {
 	scrollBy: function(length, altKey){
 		//update scrolled time.
 		this.scrolledTime = new Date();
-		//this.scrollEventOff();
 
 		var maxpos = parseInt(this.scrollV.getAttribute("maxpos"));
 		var nextSlidePosition = this.slidePosition;
@@ -648,6 +643,9 @@ FixscrollControl = {
 		if( !this.scrollV.hidden && maxHeight && maxpos != maxHeight ){
 			this.scrollV.setAttribute("maxpos", maxHeight);
 			maxpos = maxHeight;
+		}else if( this.scrollV.hidden && maxHeight > 0 ){
+			//Application.console.log("hidden:" + browser.contentWindow.scrollMaxY);
+			this.adjustScrollBar(this._innerWidth, this._innerHeight);
 		}
 		
 		//Mode slidescroll
@@ -690,8 +688,6 @@ FixscrollControl = {
 	
 	displayBrowser: function(){
 		this.scrollEventOff();
-		//TODO: temporary avoid error.
-		if(!this.browser.contentWindow.scrollToOrg) return;
 		
 		if(this.isBrowserOver){
 			this.fixScrollBrowserOver();
@@ -725,7 +721,7 @@ FixscrollControl = {
 		var overPosition = Math.ceil(currentPosition / windowHeight) * Math.round(windowHeight/scale) + this.slidePosition/scale;
 		var underPosition = (currentPosition + this.slidePosition)/scale;
 
-		browser.contentWindow.scrollToOrg(this.horizonPosition/scale,overPosition);
+		this.scrollTo(this.horizonPosition/scale,overPosition);
 		var ctx = this.canvas.getContext("2d");
 		ctx.scale(scale,scale);
 		ctx.drawWindow(browser.contentWindow, this.horizonPosition/scale, underPosition , this._innerWidth / scale, (this._innerHeight + this.duplicateHeight) / scale, this.DEFAULT_COLOR);
@@ -765,8 +761,17 @@ FixscrollControl = {
 		ctx.scale(scale,scale);
 		ctx.drawWindow(browser.contentWindow, this.horizonPosition/scale, overPosition / scale, this._innerWidth / scale, (this._innerHeight>0 ? this._innerHeight : 0)  / scale, this.DEFAULT_COLOR);
 		
-		browser.contentWindow.scrollToOrg(this.horizonPosition/scale,underPosition / scale);
+		this.scrollTo(this.horizonPosition/scale,underPosition / scale);
 	},
+	
+	scrollTo: function(x,y){
+		if(!this.browser.contentWindow.scrollToOrg){
+			this.browser.contentWindow.scrollTo(x,y);
+		}else{
+			this.browser.contentWindow.scrollToOrg(x,y);
+		}
+	},
+
 	////////////////////////////////////////////////////////////////////////////////////
 	//util method
 	////////////////////////////////////////////////////////////////////////////////////
@@ -779,6 +784,16 @@ FixscrollControl = {
 		var zeroHeight = (_height == 0 ? 1 : 0);
 		browser.height= _height + zeroHeight;
 		return zeroHeight;
+	},
+
+	setBrowserWidth: function(_width){
+		var browser = this.browser;
+		//browser height can be changed only after set null
+		browser.left = null;
+		browser.left = 0;
+		var zeroWidth = (_width == 0 ? 1 : 0);
+		browser.width= _width + zeroWidth;
+		return zeroWidth;
 	},
 	
 	//firefox5+ does not work overflow normally
@@ -806,6 +821,23 @@ FixscrollControl = {
 	},
 	
 	//getter
+	get isExcludedUrl(){
+		var excludeUrls = fxslPref.getCharPref("extensions.fixscroll.excludeUrls");
+
+		var url = window.content.location.href;
+		//Application.console.log(url + ":" + excludeUrls);
+
+		var excludeUrl = excludeUrls.split(";");
+		for(var i=0;i<excludeUrl.length;i++){
+			try{
+				if(excludeUrl[i] && url.match(new RegExp(excludeUrl[i], "i"))){
+					//Application.console.log("matched");
+					return true;
+				}
+			}catch(e){/*Application.console.log(e);*/}
+		}
+		return false;
+	},
 	
 	get windowHeight(){
 		return this._innerHeight - this.duplicateHeight + (this.scrollH.hidden ? this.SCROLL_WIDTH : 0);
@@ -860,7 +892,7 @@ FixscrollControl = {
 	get browser(){ return gBrowser.selectedTab.linkedBrowser; },
 	get notificationBox(){ return document.getElementById(gBrowser.selectedTab.linkedPanel);},
 	
-	//data
+	//data Application.console.log(arguments.callee.caller);
 	get fixPosition(){return gBrowser.selectedTab.fixscroll.fixPosition;},
 	get slidePosition(){return gBrowser.selectedTab.fixscroll.slidePosition;},
 	get isBrowserOver(){return gBrowser.selectedTab.fixscroll.isBrowserOver;},
@@ -936,7 +968,7 @@ FixscrollControl.findNodeToScroll = function (initialNode){
 	var clientFrame = targetDoc.defaultView;
 	if (docEl && docEl.nodeName.toLowerCase() == "html") { // walk the tree up looking for something to scroll
 		if (clientFrame.frameElement){
-			if(clientFrame.frameElement.scrolling == "no"){
+			if(clientFrame.frameElement.scrolling == "no" || clientFrame.frameElement.contentWindow.scrollMaxY == 0){
 				return FixscrollControl.findNodeToScroll(clientFrame.frameElement.ownerDocument.documentElement);
 			}
 			return null;

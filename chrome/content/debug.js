@@ -2,9 +2,42 @@
 var fsxlScrollFlg = false;
 
 FixscrollControl.test = function(){
-	var contextMenu = document.getElementById("contentAreaContextMenu");
-	contextMenu.openPopup(gBrowser, "overlap", 10,10,true,false,false);
-	Application.console.log("hereToTop:" + contextMenu.position + "," + contextMenu.left + "," + contextMenu.top);
+	Application.console.log("test start");
+	this.scrollEventOff();
+	return;
+	//var contextMenu = document.getElementById("contentAreaContextMenu");
+	//contextMenu.openPopup(gBrowser, "overlap", 10,10,true,false,false);
+	//Application.console.log("hereToTop:" + contextMenu.position + "," + contextMenu.left + "," + contextMenu.top);
+
+//	var hoge;
+//	Application.console.log(hoge + "," + hoge);
+//	hoge = !hoge;
+//	Application.console.log(hoge + "," + hoge);
+	
+	
+	//var excludeUrls = fxslPref.getCharPref("extensions.fixscroll.excludeUrls");
+	
+	var excludeUrls = ".*\.log$;......(((((;*************;.*\.txt$;";
+	Application.console.log(excludeUrls);
+
+	var url = window.content.location.href;
+
+	var excludeUrl = excludeUrls.split(";");
+	for(var i=0;i<excludeUrl.length;i++){
+		try{
+			var reg = new RegExp(excludeUrl[i], "i");
+
+			//var url = "hogehogerarara.txt";
+			if(url.match(reg)){
+				Application.console.log("matched");
+				return;
+			}else{
+				Application.console.log("unmatched:" + url + "," + excludeUrl[i]);
+			}
+		}catch(e){Application.console.log(e);}
+	}
+	
+	
 	/*
 	var tab = gBrowser.selectedTab;
 	
@@ -47,7 +80,7 @@ FixscrollControl.test = function(){
 		FixscrollControl.scrollEventOff();
 	}
 	*/
-	//Application.console.log("OK");
+	Application.console.log("OK");
 };
 
 var fxtest = {

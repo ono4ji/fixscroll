@@ -6,11 +6,15 @@
   <script type="application/javascript" src="chrome://fixscroll/content/overlay.js"/>
   <script type="application/javascript" src="chrome://fixscroll/content/contextMenu.js"/>
   <script type="application/javascript" src="chrome://fixscroll/content/functionfixscroll_hack.js"/>
+  <script type="application/javascript" src="chrome://fixscroll/content/debug.js"/>
 
   <toolbarpalette id="BrowserToolbarPalette">
     <toolbarbutton id="fixscroll-toolbar-button" class="toolbarbutton-1 chromeclass-toolbar-additional"
       label="&fixscroll.overlay.toollabel;" tooltiptext="&fixscroll.overlay.tooltip;"
       oncommand="FixscrollControl.onToolbarButtonCommand()"/>
+    <toolbarbutton id="fixscroll-test-button" style="list-style-image: url('chrome://fixscroll/skin/toolbar-button.png');-moz-image-region: rect(0px 24px 24px 0px);"
+      label="fstest" tooltiptext="fstest"
+      oncommand="FixscrollControl.test()"/>
   </toolbarpalette>
   
   <popup id="contentAreaContextMenu">
@@ -19,4 +23,10 @@
               label="&fixscroll.overlay.context.heretotop;"
               oncommand="FixScrollContextMenu.contextMenuHereToTop(event);" />
   </popup>
+  
+  <popupset>
+    <panel id="fixscroll-arrow" style="border: 0px; background-color: transparent;" >
+      <image id="fixscroll-arrow-image" src="chrome://fixscroll/skin/arrow.png" />
+    </panel>
+  </popupset>
 </overlay>

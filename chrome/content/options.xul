@@ -3,13 +3,15 @@
 
 <?xml-stylesheet href="chrome://global/skin/" type="text/css"?>
 
-<prefwindow id="fixscroll-preferences" xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul" title="&fixscroll.option.title;">
+<prefwindow id="fixscroll-preferences" xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul" title="&fixscroll.option.title;"
+	ondialogaccept="return validate();" >
   <prefpane id="panefixscroll" label="&fixscroll.option.title;">
     <preferences>
       <preference id="defaultOn" name="extensions.fixscroll.defaultOn" type="bool"/>
       <preference id="duplicateHeight" name="extensions.fixscroll.duplicateHeight" type="int"/>
       <preference id="cursor" name="extensions.fixscroll.kb.cursor" type="int"/>
       <preference id="pageUpDown" name="extensions.fixscroll.kb.pageUpDown" type="int"/>
+      <preference id="excludeUrls" name="extensions.fixscroll.excludeUrls" type="string"/>
     </preferences>
     <vbox>
       <checkbox id="chbDefaultOn" preference="defaultOn" label="&fixscroll.option.default;" />
@@ -31,6 +33,33 @@
       <hbox>
         <spacer width="10"/><label>&fixscroll.option.page.default;</label>
       </hbox>
+      <vbox>
+        <label control="excludeUrls">&fixscroll.option.excludeUrls.value;</label>
+        <textbox id="textExcludeUrls" preference="excludeUrls" multiline="true" />
+      </vbox>
     </vbox>
   </prefpane>
+<stringbundleset id="stringbundleset">
+<stringbundle id="strings" src="chrome://fixscroll/locale/fixscroll.properties"/>
+</stringbundleset>
+<script type="text/javascript">
+<![CDATA[
+function validate(){
+	var message = document.getElementById("strings").getString("extensions.fixscroll.excludedURL.error");
+
+    var excludeTextbox=document.getElementById("excludeUrls");
+	var excludeUrl = excludeTextbox.value.split(";");
+	for(var i=0;i<excludeUrl.length;i++){
+		try{
+			var reg = new RegExp(excludeUrl[i], "i");
+		}catch(e){
+			alert( excludeUrl[i] + " :" + message );
+			return false;
+		}
+	}
+	return true;
+}
+]]>
+</script>
+
 </prefwindow>

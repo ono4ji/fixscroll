@@ -9,6 +9,7 @@
 <!ENTITY fixscroll.option.page.value "キーボードのPageUp,PageDownでの移動量(pixel)">
 <!ENTITY fixscroll.option.page.default "※0の場合はdefault (表示ページの半分)">
 <!ENTITY fixscroll.option.title "FixScroll 設定">
+<!ENTITY fixscroll.option.excludeUrls.value "Fixscrollの対象外とするURL(正規表現,';'区切り)">
 
 <!ENTITY fixscroll.intro.title "FixScroll スタートアップ ウィザード">
 <!ENTITY fixscroll.intro.notes "FixScroll スタートアップ ウィザードにようこそ。 この拡張機能の簡単な構成をすることができます。">

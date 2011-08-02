@@ -5,3 +5,5 @@ locale    fixscroll   ja-JP         chrome/locale/ja-JP/
 
 overlay   chrome://browser/content/browser.xul   chrome://fixscroll/content/overlay.xul
 style chrome://global/content/customizeToolbar.xul chrome://fixscroll/skin/overlay.css
+
+resource fixscroll-modules modules/
