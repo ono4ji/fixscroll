@@ -78,7 +78,7 @@ FixscrollControl.fixscroll_hack_browserOn = function(browser) {
 			function(x, y){
 				var tab = gBrowser.selectedTab;
 				if(tab.isFixscroll && tab.fixscroll){
-					FixscrollControl.scrollH.setAttribute("curpos", x);
+					FixscrollControl.scrollBox.scrollLeft = this.horizonPosition;
 					var dy = parseInt(y) - (tab.fixscroll.fixPosition + tab.fixscroll.slidePosition);
 					FixscrollControl.scrollBy(dy,false);
 				}else{

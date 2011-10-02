@@ -43,3 +43,7 @@ menuitem#fixscroll-heretotop {
   background: #ccc;
   border-bottom: thin solid #777;
 }
+.scrollBox
+{
+  z-index: -99;
+}

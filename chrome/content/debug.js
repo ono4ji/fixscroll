@@ -1,9 +1,14 @@
 //for test
 var fsxlScrollFlg = false;
 
+if ("undefined" != typeof(FixscrollControl) ) {
 FixscrollControl.test = function(){
 	Application.console.log("test start");
-	this.scrollEventOff();
+	//this.scrollEventOff();
+	
+    window.open("chrome://fixscroll/content/test.xul",
+      "test",
+      "chrome,centerscreen,resizable");
 	return;
 	//var contextMenu = document.getElementById("contentAreaContextMenu");
 	//contextMenu.openPopup(gBrowser, "overlap", 10,10,true,false,false);
@@ -82,6 +87,7 @@ FixscrollControl.test = function(){
 	*/
 	Application.console.log("OK");
 };
+};
 
 var fxtest = {
 	handleEvent :function(aEvent) {
@@ -106,21 +112,21 @@ var falert = function(){
 //myUtil.dump(contextMenu,2,"contextMenu");
 var myUtil = {
 dump:function(o,depth,name,filter,filterMode) {
-    var doc = gBrowser.contentDocument,
-        el = doc.getElementById("fduDump"),
+    var //doc = gBrowser.contentDocument,
+        //el = doc.getElementById("fduDump"),
         str = "" || name + "\n",
         depthLimit = depth || 1,
         filterDefaultMode = filterMode || 1;
     // filterMode is either 1 or -1.
     // 1 => Like the iptable Allow all, it dig into all object exclude object name in the filter object
     // -1 => Like the iptable Deny all, it will not dig into any object unless object name is inside the filter
-
+/*
     if ( !el ) {
         el = doc.createElement("pre");
         el.id = "fduDump";
         doc.body.appendChild(el);
     }
-
+*/
     var transverse = function(o,thisLv,name,filter) {
         var indent = "", i, tmp, filterMode, dig, f;
         if ( filter && filter.__mode ) {

@@ -1,6 +1,7 @@
 if ("undefined" == typeof(FixScrollContextMenu) 
     && "undefined" != typeof(FixscrollControl)
 	&& "undefined" == typeof(FixscrollControl.hereToTop)
+	&& "undefined" == typeof(FixscrollControl.ns)
 	){
 
 //contextMenu
@@ -36,18 +37,19 @@ var FixScrollContextMenu = {
 	},
 }
 
+FixscrollControl.ns = {},
+
 FixscrollControl.hereToTop = function(diffY, startX, startY){
 	if(!this.isFixScrollModeOn) return;
 	
 	var windowHeight = this.windowHeight;
 	var borderPosition = this.fixPosition % windowHeight;
-	Application.console.log("diffY:" + diffY);
-	Application.console.log("borderPosition:" + borderPosition);
-	Application.console.log("windowHeight:" + windowHeight);
+	//Application.console.log("diffY:" + diffY);
+	//Application.console.log("borderPosition:" + borderPosition);
+	//Application.console.log("windowHeight:" + windowHeight);
 	
-	var ns = {};
-	Components.utils.import('resource://fixscroll-modules/animationManager.js', ns);
-	ns.animationManager.removeAllTasks();
+	Components.utils.import('resource://fixscroll-modules/animationManager.js', this.ns);
+	this.ns.animationManager.removeAllTasks();
 
 	if( borderPosition <= diffY ){
 		//under the border
@@ -58,7 +60,7 @@ FixscrollControl.hereToTop = function(diffY, startX, startY){
 			FixscrollControl.fixPosition += v; //allow over limit. -> diffY scroll recovery 
 			return aTime > aDuration;
 		};
-		ns.animationManager.addTask(task, 0, -borderPosition, 250);
+		this.ns.animationManager.addTask(task, 0, -borderPosition, 250);
 	}else{
 		//over the border
 		var task = function(aTime, aBeginningValue, aTotalChange, aDuration) {
@@ -68,7 +70,7 @@ FixscrollControl.hereToTop = function(diffY, startX, startY){
 			FixscrollControl.scrollBy( v , false);
 			return aTime > aDuration;
 		};
-		ns.animationManager.addTask(task, 0, windowHeight - borderPosition, 250);
+		this.ns.animationManager.addTask(task, 0, windowHeight - borderPosition, 250);
 	}
 	
 	//open panel
@@ -95,11 +97,11 @@ FixscrollControl.hereToTop = function(diffY, startX, startY){
 				if(aTime >= aDuration) panel.hidePopup();
 				return aTime > aDuration;
 			};
-			ns.animationManager.addTask(task, 1, 1, 250);
+			FixscrollControl.ns.animationManager.addTask(task, 1, 1, 250);
 		}
 		return aTime > aDuration;
 	};
-	ns.animationManager.addTask(task, 0, diffY, 250);
+	this.ns.animationManager.addTask(task, 0, diffY, 250);
 }
 
 window.addEventListener("load", function() { FixScrollContextMenu.init(); }, false);
