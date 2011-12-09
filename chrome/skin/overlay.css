@@ -40,8 +40,15 @@ menuitem#fixscroll-heretotop {
 }
 .borderBox
 {
+  height: 2px;
   background: #ccc;
   border-bottom: thin solid #777;
+}
+.borderBoxLast
+{
+  height: 20px;
+  background: #777;
+  border-bottom: thick solid #333;
 }
 .scrollBox
 {

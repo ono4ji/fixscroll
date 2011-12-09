@@ -48,6 +48,43 @@ FixscrollControl.fixscroll_hack_load = function() {
 		try { FixscrollControl.onResize(); }catch (ex){}
 		return result;
 	};
+
+	FixscrollControl._org_HUDConsoleUI_toggleHUD = HUDConsoleUI.toggleHUD;//for Webconsole
+	HUDConsoleUI.toggleHUD = function(){
+		var result = FixscrollControl._org_HUDConsoleUI_toggleHUD.apply(HUDConsoleUI, arguments);
+		try { FixscrollControl.onResize(); }catch (ex){}
+			var linkedBrowser = gBrowser.selectedTab.linkedBrowser;
+			var tabId = gBrowser.getNotificationBox(linkedBrowser).getAttribute("id");
+			var hudId = "hud_" + tabId;
+			var ownerDocument = gBrowser.selectedTab.ownerDocument;
+			var hud = ownerDocument.getElementById(hudId);
+			if (hud) {
+				var hudSplitter = hud.nextSibling;
+				if(hudSplitter){//I wonder why hud can't listen resize event. This way is too bad.
+					hudSplitter.addEventListener("command", function(){FixscrollControl.onResize();} ,false);
+				}
+				hud.addEventListener("transitionend", function(){FixscrollControl.onResize();} ,false); //copy from HUDService.jsm
+			}
+		return result;
+	};
+	
+	if("undefined" != typeof(Firebug) && Firebug.showBar){//for firebug
+		FixscrollControl._org_Firebug_showBar = Firebug.showBar;
+		Firebug.showBar = function(){
+			var result = FixscrollControl._org_Firebug_showBar.apply(Firebug, arguments);
+			try { FixscrollControl.onResize(); }catch (ex){}
+			return result;
+		};
+	}
+	
+	if("undefined" != typeof(Firebug) && Firebug.closeFirebug){//for firebug
+		FixscrollControl._org_Firebug_closeFirebug = Firebug.closeFirebug;
+		Firebug.closeFirebug = function(){
+			var result = FixscrollControl._org_Firebug_closeFirebug.apply(Firebug, arguments);
+			try { FixscrollControl.onResize(); }catch (ex){}
+			return result;
+		};
+	}
 }
 
 FixscrollControl.fixscroll_hack_unload = function() {
@@ -68,6 +105,34 @@ FixscrollControl.fixscroll_hack_unload = function() {
 
 	FullScreen.mouseoverToggle = FixscrollControl._org_FullScreen_mouseoverToggle;
 	FixscrollControl._org_FullScreen_mouseoverToggle = null;
+
+	FullScreen.toggleHUD = FixscrollControl._org_HUDConsoleUI_toggleHUD;//for Webconsole
+	FixscrollControl._org_HUDConsoleUI_toggleHUD = null;
+	//remove event
+	var tabs = gBrowser.tabContainer.childNodes;
+	for(var i=0; i< tabs.length;i++){
+		var xulDocument = tabs[i].ownerDocument;
+		var notificationBox = document.getElementById(tabs[i].linkedPanel);
+		var hudId = "hud_" + notificationBox.getAttribute("id");
+		var hud = xulDocument.getElementById(hudId);
+		if (hud) {
+			var hudSplitter = hud.nextSibling;
+			if(hudSplitter){
+				hudSplitter.removeEventListener("command", function(){FixscrollControl.onResize();} ,false);
+			}
+			hud.removeEventListener("transitionend", function(){FixscrollControl.onResize();} ,false);
+		}
+	}
+
+	if(FixscrollControl._org_Firebug_showBar){//for firebug
+		Firebug.showBar = FixscrollControl._org_Firebug_showBar;
+		FixscrollControl._org_Firebug_showBar = null;
+	}
+
+	if(FixscrollControl._org_Firebug_closeFirebug){//for firebug
+		Firebug.closeFirebug = FixscrollControl._org_Firebug_closeFirebug;
+		FixscrollControl._org_Firebug_closeFirebug = null;
+	}
 }
 
 FixscrollControl.fixscroll_hack_browserOn = function(browser) {

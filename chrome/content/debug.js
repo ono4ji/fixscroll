@@ -1,15 +1,80 @@
 //for test
 var fsxlScrollFlg = false;
+var fsxlCurrent = 0;
+
+function ikeru(e){
+	Application.console.log("ikeru: "  + e.target + "," + e.currentTarget);
+}
+
+function ikitai(e){
+	Application.console.log("ikitai: "  + e.target + "," + e.currentTarget);
+}
+
+function ikenai(e){
+	Application.console.log("ikenai: "  + e.target + "," + e.currentTarget);
+}
+
 
 if ("undefined" != typeof(FixscrollControl) ) {
 FixscrollControl.test = function(){
 	Application.console.log("test start");
-	//this.scrollEventOff();
 	
+	//webコンソールの差込先を検証
+	//canvasの差込先を探した
+	var notifi = document.getElementById(gBrowser.selectedTab.linkedPanel);
+	Application.console.log("notifi children:" + notifi.children.length);
+	for(var i=0; i< notifi.children.length; i++){
+		var obj = notifi.children[i];
+		Application.console.log(i + ":" +obj.tagName);
+		Application.console.log(i + ":" +obj.id);
+		Application.console.log(i + ":" +obj.getAttribute("anonid"));
+		if(obj.id){
+			//myUtil.dump(obj,2,"obj");
+		}
+	}
+	
+	return;
+	
+	/*
+	//canvasとsplitterの関係調査
+    window.open("chrome://fixscroll/content/canvas_splitter.xul",
+      "canvas_splitter",
+      "chrome,centerscreen,resizable");
+
+	return;
+
+	//canvasの差込先を探した
+	var notifi = document.getElementById(gBrowser.selectedTab.linkedPanel);
+	Application.console.log("notifi children:" + notifi.children.length);
+	for(var i=0; i< notifi.children.length; i++){
+		var obj = notifi.children[i];
+		Application.console.log(i + ":" +obj.tagName);
+		Application.console.log(i + ":" +obj.id);
+		Application.console.log(i + ":" +obj.getAttribute("anonid"));
+		myUtil.dump(obj,2,"obj");
+	}
+	
+	//自動スクロール
+	fsxlCurrent = 0;
+	var ugokasu = function(){
+		fsxlCurrent = fsxlCurrent + 20;
+		if(gBrowser.contentWindow.scrollMaxY < fsxlCurrent) return ;
+		gBrowser.contentWindow.scrollTo(0, fsxlCurrent);
+		
+		setTimeout(ugokasu, 15);
+	};
+	
+	setTimeout(ugokasu, 15);
+	
+	return;
+	//this.scrollEventOff();
+	*/
+/*	
     window.open("chrome://fixscroll/content/test.xul",
       "test",
       "chrome,centerscreen,resizable");
 	return;
+*/
 	//var contextMenu = document.getElementById("contentAreaContextMenu");
 	//contextMenu.openPopup(gBrowser, "overlap", 10,10,true,false,false);
 	//Application.console.log("hereToTop:" + contextMenu.position + "," + contextMenu.left + "," + contextMenu.top);

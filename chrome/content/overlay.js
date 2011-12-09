@@ -20,6 +20,8 @@ var FixscrollData = function(){
 FixscrollControl = {
 	SCROLL_WIDTH : 17,
 	DEFAULT_COLOR : "rgb(255,255,255)",
+	MIN_LENGTH : "1px",//canvas must be over 0px.
+	DEFAULT_STYLE_LEFT : "0",//just at windows 7.(0px)
 	duplicateHeight : 20,
 
 	//last scroll triger time.
@@ -42,7 +44,10 @@ FixscrollControl = {
 		
 		var sidebarBox = document.getElementById("sidebar-box");
 		sidebarBox.addEventListener("resize" ,function(){FixscrollControl.onResize();} ,false);
-
+		var fbMainFrame = document.getElementById("fbMainFrame"); // for firebug
+		if(fbMainFrame){
+			fbMainFrame.addEventListener("resize", function(){FixscrollControl.onResize();} ,false);
+		}
 		window.addEventListener("findbaropen" ,function(){FixscrollControl.onResize();} ,false);//bottombox
 		window.addEventListener("fullscreen", function(){FixscrollControl.onResize();}, false);//fullscreen
 
@@ -67,7 +72,10 @@ FixscrollControl = {
 
 		var sidebarBox = document.getElementById("sidebar-box");
 		sidebarBox.removeEventListener("resize" ,function(){FixscrollControl.onResize();} ,false);
-
+		var fbMainFrame = document.getElementById("fbMainFrame"); // for firebug
+		if(fbMainFrame){
+			fbMainFrame.removeEventListener("resize" ,function(){FixscrollControl.onResize();} ,false);
+		}
 		window.removeEventListener("findbaropen" ,function(){FixscrollControl.onResize();} ,false);//bottombox
 		window.removeEventListener("fullscreen", function(){FixscrollControl.onResize();}, false);//fullscreen
 
@@ -86,28 +94,31 @@ FixscrollControl = {
 		this.scrollBox.id = "fxsl.scrollBox";
 		this.scrollBox.style.overflow = "auto";
 		this.scrollBox.style.display = "block";
-		this.scrollBox.style.width = "10px";
-		this.scrollBox.style.height = "10px";
+		this.scrollBox.style.width = this.MIN_LENGTH;
+		this.scrollBox.style.height = this.MIN_LENGTH;
 		this.scrollBox.style.position = "fixed";
-		this.scrollBox.style.left = "1px";//just at windows 7.
+		this.scrollBox.style.left = this.DEFAULT_STYLE_LEFT + "px";
 		this.scrollBox.classList.add("scrollBox");
 		
 		//scrollbox:horizontal -> setting scrollWidth
 		this.scrollBoxChild = document.createElement("box");
 		this.scrollBoxChild.id = "fxsl.scrollBoxChild";
 		this.scrollBoxChild.style.display = "block";
-		this.scrollBoxChild.style.width = "10px";
-		this.scrollBoxChild.style.height = "10px";
+		this.scrollBoxChild.style.width = this.MIN_LENGTH;
+		this.scrollBoxChild.style.height = this.MIN_LENGTH;
 		this.scrollBox.appendChild(this.scrollBoxChild);
 		
 		//canvas
 		//canvasÇÃí«â¡(canvasÇÇªÇÃÇ‹Ç‹appendchildÇ∑ÇÈÇ∆ägëÂÇ≥ÇÍÇƒÇµÇ‹Ç§ÅB
 		this.canvasBox = document.createElement("box");
 		this.canvasBox.id = "fxsl.canvasBox";
+		this.canvasBox.style.minHeight = this.MIN_LENGTH; //parent doesn't know child's style
+		this.canvasBox.style.minWidth = this.MIN_LENGTH; //parent doesn't know child's style
 
 		this.canvas = document.createElementNS("http://www.w3.org/1999/xhtml", "html:canvas");
 		this.canvas.id = "fxsl.canvas";
 		this.canvas.height = 1;
+		this.canvas.style.minHeight = this.MIN_LENGTH; //parent doesn't know child's style
 		this.canvasBox.appendChild(this.canvas);
 		
 		//border
@@ -115,7 +126,6 @@ FixscrollControl = {
 		this.border.id = "fxsl.border";
 		this.border.top = 0;
 		this.border.left = 0;
-		this.border.height = 2;
 		this.border.width = innerWidth;
 		this.border.classList.add("borderBox");
 		
@@ -203,10 +213,11 @@ FixscrollControl = {
 		tab.fixscroll = new FixscrollData();
 		
 		//Application.console.log("start:" + gBrowser.selectedTab.linkedPanel);
-		var stack = this.notificationBox.childNodes[0];
+		var stack = this.stack;
 		var stackBox = document.getBoxObjectFor(stack);
 		var innerHeight = stackBox.height - this.SCROLL_WIDTH;
 		var innerWidth = stackBox.width - this.SCROLL_WIDTH;
+		stack.style.minHeight = this.MIN_LENGTH; //parent doesn't know child's style. for web console or firebugs
 
 		var browser = this.browser;
 		
@@ -236,9 +247,10 @@ FixscrollControl = {
 		this.canvas.removeEventListener("mouseover", this, false);
 		this.dBox.removeEventListener("mousemove", this, false);
 
-		var stack = this.notificationBox.childNodes[0];
+		var stack = this.stack;
 		stack.removeEventListener('DOMMouseScroll', this, false);
 		window.removeEventListener('resize', this, false);
+		stack.style.minHeight = null;
 
 		var browser = this.browser;
 		if(!isExcludedUrl)
@@ -281,7 +293,7 @@ FixscrollControl = {
 		this.canvas.removeEventListener("mouseover", this, false);
 		this.dBox.removeEventListener("mousemove", this, false);
 
-		var stack = this.notificationBox.childNodes[0];
+		var stack = this.stack;
 		stack.removeEventListener('DOMMouseScroll', this, false);
 		stack.appendChild(this.canvasBox);
 		stack.appendChild(this.border);
@@ -302,7 +314,7 @@ FixscrollControl = {
 		this.canvas.addEventListener("mouseover", this, false);
 		this.dBox.addEventListener("mousemove", this, false);
 		
-		var stack = this.notificationBox.childNodes[0];
+		var stack = this.stack;
 		stack.addEventListener('DOMMouseScroll', this, false);
 	},
 	
@@ -358,14 +370,14 @@ FixscrollControl = {
 		var maxHeight = (browser.contentWindow.scrollMaxY < 5 ? 0 : this.maxHeight);//ideal(== 0) but google map is 3.
 		this.scrollBoxChild.style.height = maxHeight + height + "px";//height + relationalHeight;
 		this.scrollBoxChild.style.width = maxWidth + width + "px";//width + relationalWidth;
-		//Application.console.log(height + ":::" + maxHeight + "@@@@@" + relationalHeight);
+		//Application.console.log(height + ":::" + maxHeight + "@@@@@" + relationalHeight + "[[" + this.scrollBoxChild.style.height);
 		this.scrollBox.scrollTop = this.fixPosition;
 		this.scrollBox.scrollLeft = this.horizonPosition;
 
 		//for sidebar
-		var stack = FixscrollControl.notificationBox.childNodes[0];
+		var stack = this.stack;
 		var left = stack.getBoundingClientRect().left;
-		if(!left) left = 1;
+		if(!left) left = this.DEFAULT_STYLE_LEFT;
 		this.scrollBox.style.left = left + "px";
 
 		var hiddenV = this.isScrollVHidden;
@@ -597,7 +609,7 @@ FixscrollControl = {
 		browser.height = null;
 		browser.width = null;
 
-		var stack = FixscrollControl.notificationBox.childNodes[0];
+		var stack = FixscrollControl.stack;
 		var stackBox = document.getBoxObjectFor(stack);
 		var innerHeight = stackBox.height - FixscrollControl.SCROLL_WIDTH;
 		var innerWidth = stackBox.width - FixscrollControl.SCROLL_WIDTH;
@@ -697,6 +709,15 @@ FixscrollControl = {
 			this.fixPosition = nextFixPosition;
 			this.slidePosition = nextSlidePosition;
 			this.displayBrowser();
+			
+			//when scroll last, border style changes.
+			if(maxpos <= nextFixPosition + nextSlidePosition){
+				this.border.classList.remove("borderBox");
+				this.border.classList.add("borderBoxLast");
+			}else{
+				this.border.classList.add("borderBox");
+				this.border.classList.remove("borderBoxLast");
+			}
 		}
 		this.border.hidden = this.isScrollVHidden;
 		this.dBox.hidden = this.isScrollVHidden;
@@ -724,12 +745,12 @@ FixscrollControl = {
 		
 		//control height
 		var zeroBrowser = this.setBrowserHeight( this.isScrollVHidden ? windowHeight : currentPosition % windowHeight );
-		this.canvas.height= windowHeight - browser.height + this.duplicateHeight;
+		this.canvas.height= Math.max(1, windowHeight - browser.height + this.duplicateHeight);
 		this.canvasBox.height = this.canvas.height;
 		//Application.console.log("windowHeight: " + windowHeight + ", browser.height:" + browser.height + ",this.canvas.height: " + this.canvas.height + "," + currentPosition);
 
 		//control position
-		browser.top = ( zeroBrowser == 0 ? 0 : windowHeight + 100);
+		browser.top = ( zeroBrowser == 0 ? 0 : windowHeight + 1);//+1 means don't display browser.Small number is for the element under broser.
 		this.canvasBox.top = browser.height - zeroBrowser;
 		this.border.top = this.canvasBox.top;
 
@@ -777,7 +798,7 @@ FixscrollControl = {
 		var ctx = this.canvas.getContext("2d");
 		var scale = this.scale;
 		ctx.scale(scale,scale);
-		ctx.drawWindow(browser.contentWindow, this.horizonPosition/scale, overPosition / scale, this._innerWidth / scale, (this._innerHeight>0 ? this._innerHeight : 0)  / scale, this.DEFAULT_COLOR);
+		ctx.drawWindow(browser.contentWindow, this.horizonPosition/scale, overPosition / scale, this._innerWidth / scale, (this._innerHeight>0 ? this._innerHeight+20 : 0)  / scale, this.DEFAULT_COLOR);//height + 20(if no duplicationArea, last 20px content don't display)
 		
 		this.scrollTo(this.horizonPosition/scale,underPosition / scale);
 	},
@@ -914,6 +935,21 @@ FixscrollControl = {
 	//element
 	get browser(){ return gBrowser.selectedTab.linkedBrowser; },
 	get notificationBox(){ return document.getElementById(gBrowser.selectedTab.linkedPanel);},
+	get stack(){
+		//webconsole or anythig else insert any tags into notificationBox.
+		//Fixscroll manage "browserStack".
+		var notifi = this.notificationBox;
+		if(notifi){
+			for(var i=0; i< notifi.children.length;i++){
+				if("browserStack" == notifi.children[i].getAttribute("anonid")){
+					return notifi.children[i];
+				}
+			}
+			//must not happen
+			return notifi.childNode[0];
+		}
+		return null;
+	},
 	
 	//data Application.console.log(arguments.callee.caller);
 	get fixPosition(){if(this.nCheck)return 0;
