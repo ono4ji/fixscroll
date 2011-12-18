@@ -44,10 +44,6 @@ FixscrollControl = {
 		
 		var sidebarBox = document.getElementById("sidebar-box");
 		sidebarBox.addEventListener("resize" ,function(){FixscrollControl.onResize();} ,false);
-		var fbMainFrame = document.getElementById("fbMainFrame"); // for firebug
-		if(fbMainFrame){
-			fbMainFrame.addEventListener("resize", function(){FixscrollControl.onResize();} ,false);
-		}
 		window.addEventListener("findbaropen" ,function(){FixscrollControl.onResize();} ,false);//bottombox
 		window.addEventListener("fullscreen", function(){FixscrollControl.onResize();}, false);//fullscreen
 
@@ -72,10 +68,6 @@ FixscrollControl = {
 
 		var sidebarBox = document.getElementById("sidebar-box");
 		sidebarBox.removeEventListener("resize" ,function(){FixscrollControl.onResize();} ,false);
-		var fbMainFrame = document.getElementById("fbMainFrame"); // for firebug
-		if(fbMainFrame){
-			fbMainFrame.removeEventListener("resize" ,function(){FixscrollControl.onResize();} ,false);
-		}
 		window.removeEventListener("findbaropen" ,function(){FixscrollControl.onResize();} ,false);//bottombox
 		window.removeEventListener("fullscreen", function(){FixscrollControl.onResize();}, false);//fullscreen
 
@@ -88,6 +80,17 @@ FixscrollControl = {
 		//Application.console.log("initElement");
 		
 		var fontsize = this.fontsize;
+
+		//for resize tabbrowser(Anything under or over tabbrowser content appear and resize by splitter.)
+		//TODO: it can't make tabbrowser big.
+		var resizeBox = document.createElement("browser");
+		resizeBox.id = "fxsl.resizeBox";
+		resizeBox.width = 0;
+		resizeBox.style.maxWidth = 0;
+		var br = document.getElementById("browser");
+		var sb = document.getElementById("sidebar-box");
+		br.insertBefore(resizeBox, sb);
+		resizeBox.addEventListener("resize", function(){FixscrollControl.onResize();} ,false);
 		
 		//scrollbox
 		this.scrollBox = document.createElement("vbox");
@@ -220,6 +223,7 @@ FixscrollControl = {
 		stack.style.minHeight = this.MIN_LENGTH; //parent doesn't know child's style. for web console or firebugs
 
 		var browser = this.browser;
+		browser.style.minHeight = this.MIN_LENGTH; //parent doesn't know child's style. for web console or firebugs
 		
 		// keep position(OFF -> ON)1. This should be before drawing.
 		this.fixPosition = browser.contentWindow.scrollY;
@@ -371,7 +375,7 @@ FixscrollControl = {
 		this.scrollBoxChild.style.height = maxHeight + height + "px";//height + relationalHeight;
 		this.scrollBoxChild.style.width = maxWidth + width + "px";//width + relationalWidth;
 		//Application.console.log(height + ":::" + maxHeight + "@@@@@" + relationalHeight + "[[" + this.scrollBoxChild.style.height);
-		this.scrollBox.scrollTop = this.fixPosition;
+		this.scrollBox.scrollTop = this.fixPosition + this.slidePosition;//scrollbar need fix and slide.
 		this.scrollBox.scrollLeft = this.horizonPosition;
 
 		//for sidebar
@@ -416,7 +420,9 @@ FixscrollControl = {
 		//replace with nsITimer
 		var timer = Components.classes["@mozilla.org/timer;1"].createInstance(Components.interfaces.nsITimer);
 		timer.initWithCallback(function(){
-				FixscrollControl._scrollEventOn();
+				if ("undefined" != typeof(FixscrollControl) ){
+					FixscrollControl._scrollEventOn();
+				}
 			}, 300, Components.interfaces.nsITimer.TYPE_ONE_SHOT);
 	},
 	//cannot call addEventListener in setTimeout;
@@ -967,12 +973,18 @@ FixscrollControl = {
 	//avoid null error.
 	get nCheck(){ return !gBrowser.selectedTab.fixscroll;},
 	
-	set fixPosition(i){gBrowser.selectedTab.fixscroll.fixPosition = i;},
-	set slidePosition(i){gBrowser.selectedTab.fixscroll.slidePosition = i;},
-	set isBrowserOver(i){gBrowser.selectedTab.fixscroll.isBrowserOver = i;},
-	set horizonPosition(i){gBrowser.selectedTab.fixscroll.horizonPosition = i;},
-	set _innerWidth(i){gBrowser.selectedTab.fixscroll._innerWidth = i;},
-	set _innerHeight(i){gBrowser.selectedTab.fixscroll._innerHeight = i;},
+	set fixPosition(i){		if(this.nCheck)return;
+		gBrowser.selectedTab.fixscroll.fixPosition = i;},
+	set slidePosition(i){	if(this.nCheck)return;
+		gBrowser.selectedTab.fixscroll.slidePosition = i;},
+	set isBrowserOver(i){	if(this.nCheck)return;
+		gBrowser.selectedTab.fixscroll.isBrowserOver = i;},
+	set horizonPosition(i){	if(this.nCheck)return;
+		gBrowser.selectedTab.fixscroll.horizonPosition = i;},
+	set _innerWidth(i){		if(this.nCheck)return;
+		gBrowser.selectedTab.fixscroll._innerWidth = i;},
+	set _innerHeight(i){	if(this.nCheck)return;
+		gBrowser.selectedTab.fixscroll._innerHeight = i;},
 };
 
 //現時点では不要だが、タブでアドオン設定する方法以外にもでてくるかもしれないので、残しておく。

@@ -19,23 +19,12 @@ if ("undefined" != typeof(FixscrollControl) ) {
 FixscrollControl.test = function(){
 	Application.console.log("test start");
 	
-	//webƒRƒ“ƒ\[ƒ‹‚Ì·æ‚ğŒŸØ
-	//canvas‚Ì·æ‚ğ’T‚µ‚½
-	var notifi = document.getElementById(gBrowser.selectedTab.linkedPanel);
-	Application.console.log("notifi children:" + notifi.children.length);
-	for(var i=0; i< notifi.children.length; i++){
-		var obj = notifi.children[i];
-		Application.console.log(i + ":" +obj.tagName);
-		Application.console.log(i + ":" +obj.id);
-		Application.console.log(i + ":" +obj.getAttribute("anonid"));
-		if(obj.id){
-			//myUtil.dump(obj,2,"obj");
-		}
-	}
-	
 	return;
 	
 	/*
+	//ŒÄ‚Ñ‚à‚Æ‚ÌŠÖ”
+	Application.console.log("scrollBy calle:" + arguments.callee.caller.toString());
+	
 	//canvas‚Æsplitter‚ÌŠÖŒW’²¸
     window.open("chrome://fixscroll/content/canvas_splitter.xul",
       "canvas_splitter",

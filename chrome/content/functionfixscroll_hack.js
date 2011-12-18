@@ -1,8 +1,11 @@
 if ( "undefined" != typeof(FixscrollControl)
 	&& "undefined" == typeof(FixscrollControl.fixscroll_hack_load)
+	&& "undefined" == typeof(FixscrollControl.fixscroll_addon_load)
 	&& "undefined" == typeof(FixscrollControl.fixscroll_hack_unload)
+	&& "undefined" == typeof(FixscrollControl.fixscroll_addon_unload)
 	&& "undefined" == typeof(FixscrollControl.fixscroll_hack_browserOn)
 	&& "undefined" == typeof(FixscrollControl.fixscroll_hack_browserOff)
+	&& "undefined" == typeof(FixscrollControl.lazyResize)
 	) {
 
 FixscrollControl.fixscroll_hack_load = function() {
@@ -51,6 +54,7 @@ FixscrollControl.fixscroll_hack_load = function() {
 
 	FixscrollControl._org_HUDConsoleUI_toggleHUD = HUDConsoleUI.toggleHUD;//for Webconsole
 	HUDConsoleUI.toggleHUD = function(){
+		if ("undefined" == typeof(FixscrollControl) ) return;
 		var result = FixscrollControl._org_HUDConsoleUI_toggleHUD.apply(HUDConsoleUI, arguments);
 		try { FixscrollControl.onResize(); }catch (ex){}
 			var linkedBrowser = gBrowser.selectedTab.linkedBrowser;
@@ -68,23 +72,7 @@ FixscrollControl.fixscroll_hack_load = function() {
 		return result;
 	};
 	
-	if("undefined" != typeof(Firebug) && Firebug.showBar){//for firebug
-		FixscrollControl._org_Firebug_showBar = Firebug.showBar;
-		Firebug.showBar = function(){
-			var result = FixscrollControl._org_Firebug_showBar.apply(Firebug, arguments);
-			try { FixscrollControl.onResize(); }catch (ex){}
-			return result;
-		};
-	}
-	
-	if("undefined" != typeof(Firebug) && Firebug.closeFirebug){//for firebug
-		FixscrollControl._org_Firebug_closeFirebug = Firebug.closeFirebug;
-		Firebug.closeFirebug = function(){
-			var result = FixscrollControl._org_Firebug_closeFirebug.apply(Firebug, arguments);
-			try { FixscrollControl.onResize(); }catch (ex){}
-			return result;
-		};
-	}
+	this.fixscroll_addon_load();
 }
 
 FixscrollControl.fixscroll_hack_unload = function() {
@@ -124,6 +112,60 @@ FixscrollControl.fixscroll_hack_unload = function() {
 		}
 	}
 
+	this.fixscroll_addon_unload();
+}
+
+FixscrollControl.fixscroll_addon_load = function() {
+	var fbMainFrame = document.getElementById("fbMainFrame"); // for firebug
+	if(fbMainFrame){
+		fbMainFrame.addEventListener("resize", function(){FixscrollControl.onResize();} ,false);
+	}
+	
+	if("undefined" != typeof(Firebug) && Firebug.showBar){//for firebug
+		FixscrollControl._org_Firebug_showBar = Firebug.showBar;
+		Firebug.showBar = function(){
+			var result = FixscrollControl._org_Firebug_showBar.apply(Firebug, arguments);
+			try { FixscrollControl.onResize(); }catch (ex){}
+			return result;
+		};
+	}
+	
+	if("undefined" != typeof(Firebug) && Firebug.closeFirebug){//for firebug
+		FixscrollControl._org_Firebug_closeFirebug = Firebug.closeFirebug;
+		Firebug.closeFirebug = function(){
+			var result = FixscrollControl._org_Firebug_closeFirebug.apply(Firebug, arguments);
+			try { FixscrollControl.onResize(); }catch (ex){}
+			return result;
+		};
+	}
+
+	var abpSidebar = document.getElementById("abp-sidebar"); // for addblock-plus
+	if(abpSidebar){
+		abpSidebar.addEventListener("resize", function(){FixscrollControl.onResize();} ,false);
+	}
+	
+	var abpCommand = parent.document.getElementById("abp-command-sidebar");//for addblock-plus
+	if(abpCommand){
+		//abp add event to command in jsm. And this eventlister call earlier than adp.
+		abpCommand.addEventListener("command", function(){FixscrollControl.lazyResize();}, false);
+	}
+}
+
+//lazy call resize 
+FixscrollControl.lazyResize = function() {
+	var timer = Components.classes["@mozilla.org/timer;1"].createInstance(Components.interfaces.nsITimer);
+	timer.initWithCallback(function(){
+			FixscrollControl.onResize();
+		}, 0, Components.interfaces.nsITimer.TYPE_ONE_SHOT);
+}
+
+FixscrollControl.fixscroll_addon_unload = function() {
+
+	var fbMainFrame = document.getElementById("fbMainFrame"); // for firebug
+	if(fbMainFrame){
+		fbMainFrame.removeEventListener("resize" ,function(){FixscrollControl.onResize();} ,false);
+	}
+
 	if(FixscrollControl._org_Firebug_showBar){//for firebug
 		Firebug.showBar = FixscrollControl._org_Firebug_showBar;
 		FixscrollControl._org_Firebug_showBar = null;
@@ -132,6 +174,16 @@ FixscrollControl.fixscroll_hack_unload = function() {
 	if(FixscrollControl._org_Firebug_closeFirebug){//for firebug
 		Firebug.closeFirebug = FixscrollControl._org_Firebug_closeFirebug;
 		FixscrollControl._org_Firebug_closeFirebug = null;
+	}
+
+	var abpSidebar = document.getElementById("abp-sidebar"); // for addblock-plus
+	if(abpSidebar){
+		abpSidebar.removeEventListener("resize", function(){FixscrollControl.onResize();} ,false);
+	}
+	
+	var abpCommand = parent.document.getElementById("abp-command-sidebar");//for addblock-plus
+	if(abpCommand){
+		abpCommand.removeEventListener("command", function(){FixscrollControl.lazyResize();}, false);
 	}
 }
 
