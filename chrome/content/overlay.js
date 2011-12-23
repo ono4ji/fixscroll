@@ -26,7 +26,10 @@ FixscrollControl = {
 
 	//last scroll triger time.
 	scrolledTime : new Date(),
-	
+
+	//previous tab. for onTabSelectd to resize free.
+	previousTab: "",
+
 	////////////////////////////////////////////////////////////////////////////////////
 	//load method
 	////////////////////////////////////////////////////////////////////////////////////
@@ -41,6 +44,7 @@ FixscrollControl = {
 		}
 
 		gBrowser.tabContainer.addEventListener("TabSelect", function(){FixscrollControl.onTabSelected();}, false);
+		this.previousTab = gBrowser.selectedTab;
 		
 		var sidebarBox = document.getElementById("sidebar-box");
 		sidebarBox.addEventListener("resize" ,function(){FixscrollControl.onResize();} ,false);
@@ -173,6 +177,16 @@ FixscrollControl = {
 	onTabSelected: function(){
 		var tab = gBrowser.selectedTab;
 		//Application.console.log("onTabSelected:" + tab.isFixscroll + ", " + tab.fixscroll + "," + tab.linkedPanel + "," + tab.tabIndex );
+		if( this.previousTab && !(this.previousTab === tab) && this.previousTab.isFixscroll ){
+			//previous tab's browser must be initialized.
+			var browser = this.previousTab.linkedBrowser;
+			this.changeOverflow(browser, null);
+			browser.top = null;
+			browser.left = null;
+			browser.height = null;
+			browser.width = null;
+		}
+		this.previousTab = tab;
 
 		//no setting -> use default value
 		if(tab.isFixscroll == undefined){

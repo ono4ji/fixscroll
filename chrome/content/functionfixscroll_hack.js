@@ -121,15 +121,6 @@ FixscrollControl.fixscroll_addon_load = function() {
 		fbMainFrame.addEventListener("resize", function(){FixscrollControl.onResize();} ,false);
 	}
 	
-	if("undefined" != typeof(Firebug) && Firebug.showBar){//for firebug
-		FixscrollControl._org_Firebug_showBar = Firebug.showBar;
-		Firebug.showBar = function(){
-			var result = FixscrollControl._org_Firebug_showBar.apply(Firebug, arguments);
-			try { FixscrollControl.onResize(); }catch (ex){}
-			return result;
-		};
-	}
-	
 	if("undefined" != typeof(Firebug) && Firebug.closeFirebug){//for firebug
 		FixscrollControl._org_Firebug_closeFirebug = Firebug.closeFirebug;
 		Firebug.closeFirebug = function(){
@@ -164,11 +155,6 @@ FixscrollControl.fixscroll_addon_unload = function() {
 	var fbMainFrame = document.getElementById("fbMainFrame"); // for firebug
 	if(fbMainFrame){
 		fbMainFrame.removeEventListener("resize" ,function(){FixscrollControl.onResize();} ,false);
-	}
-
-	if(FixscrollControl._org_Firebug_showBar){//for firebug
-		Firebug.showBar = FixscrollControl._org_Firebug_showBar;
-		FixscrollControl._org_Firebug_showBar = null;
 	}
 
 	if(FixscrollControl._org_Firebug_closeFirebug){//for firebug
