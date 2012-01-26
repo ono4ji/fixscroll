@@ -1,12 +1,9 @@
-if ("undefined" == typeof(fxslVERSION)  
-	&& "undefined" == typeof(fxslPref) 
+if ("undefined" == typeof(FixscrollPref) 
 	&& "undefined" == typeof(FixscrollData) 
 	&& "undefined" == typeof(FixscrollControl)
 	) {
 
-const fxslVERSION = "0.6";
-
-const fxslPref = Components.classes["@mozilla.org/preferences-service;1"].getService(Components.interfaces.nsIPrefService).getBranch(null);;
+const FixscrollPref = Components.classes["@mozilla.org/preferences-service;1"].getService(Components.interfaces.nsIPrefService).getBranch(null);;
 
 var FixscrollData = function(){
 	this.fixPosition = 0;
@@ -18,11 +15,13 @@ var FixscrollData = function(){
 };
 
 FixscrollControl = {
+	VERSION : "0.9",
 	SCROLL_WIDTH : 17,
 	DEFAULT_COLOR : "rgb(255,255,255)",
 	MIN_LENGTH : "1px",//canvas must be over 0px.
 	DEFAULT_STYLE_LEFT : "0",//just at windows 7.(0px)
 	duplicateHeight : 20,
+	scrollEventFlag: true,//true: can scroll, false: can't scroll.
 
 	//last scroll triger time.
 	scrolledTime : new Date(),
@@ -36,11 +35,11 @@ FixscrollControl = {
 	onLoad: function() {
 		// first loading
 		var version = null;
-		try{ version = fxslPref.getCharPref("extensions.fixscroll.version");}catch(e){}
+		try{ version = FixscrollPref.getCharPref("extensions.fixscroll.version");}catch(e){}
 		if (!version){
 			//first loading
-			window.openDialog("chrome://fixscroll/content/intro.xul", "fixscrollIntro", "chrome=yes,dialog=yes,resizable=yes");
-			fxslPref.setCharPref("extensions.fixscroll.version", fxslVERSION);
+			window.openDialog("chrome://fixscroll/content/intro.xul", "fixscrollIntro", "chrome=yes,dialog=yes,resizable=yes,centerscreen");
+			FixscrollPref.setCharPref("extensions.fixscroll.version", this.VERSION);
 		}
 
 		gBrowser.tabContainer.addEventListener("TabSelect", function(){FixscrollControl.onTabSelected();}, false);
@@ -52,9 +51,9 @@ FixscrollControl = {
 		window.addEventListener("fullscreen", function(){FixscrollControl.onResize();}, false);//fullscreen
 
 		//pref
-		fxslPref.QueryInterface(Ci.nsIPrefBranch2);
-		fxslPref.addObserver("extensions.fixscroll.defaultOn", this, false);
-		fxslPref.QueryInterface(Ci.nsIPrefBranch);
+		FixscrollPref.QueryInterface(Ci.nsIPrefBranch2);
+		FixscrollPref.addObserver("extensions.fixscroll.defaultOn", this, false);
+		FixscrollPref.QueryInterface(Ci.nsIPrefBranch);
 		
 		this.fixscroll_hack_load();
 		
@@ -62,7 +61,7 @@ FixscrollControl = {
 		
 		//mode ON@first TAB
 		var tab = gBrowser.selectedTab;
-		tab.isFixscroll = fxslPref.getBoolPref("extensions.fixscroll.defaultOn");
+		tab.isFixscroll = FixscrollPref.getBoolPref("extensions.fixscroll.defaultOn");
 		
 		this.startStop(true);
 	},
@@ -75,7 +74,7 @@ FixscrollControl = {
 		window.removeEventListener("findbaropen" ,function(){FixscrollControl.onResize();} ,false);//bottombox
 		window.removeEventListener("fullscreen", function(){FixscrollControl.onResize();}, false);//fullscreen
 
-		fxslPref.removeObserver("extensions.fixscroll.defaultOn", this);
+		FixscrollPref.removeObserver("extensions.fixscroll.defaultOn", this);
 
 		this.fixscroll_hack_unload();
 	},
@@ -88,7 +87,8 @@ FixscrollControl = {
 		//for resize tabbrowser(Anything under or over tabbrowser content appear and resize by splitter.)
 		//TODO: it can't make tabbrowser big.
 		var resizeBox = document.createElement("browser");
-		resizeBox.id = "fxsl.resizeBox";
+		resizeBox.id = "Fixscroll.resizeBox";
+		resizeBox.setAttribute("disablehistory",true);//stop error NS_ERROR_FAILURE.
 		resizeBox.width = 0;
 		resizeBox.style.maxWidth = 0;
 		var br = document.getElementById("browser");
@@ -98,7 +98,7 @@ FixscrollControl = {
 		
 		//scrollbox
 		this.scrollBox = document.createElement("vbox");
-		this.scrollBox.id = "fxsl.scrollBox";
+		this.scrollBox.id = "Fixscroll.scrollBox";
 		this.scrollBox.style.overflow = "auto";
 		this.scrollBox.style.display = "block";
 		this.scrollBox.style.width = this.MIN_LENGTH;
@@ -109,7 +109,7 @@ FixscrollControl = {
 		
 		//scrollbox:horizontal -> setting scrollWidth
 		this.scrollBoxChild = document.createElement("box");
-		this.scrollBoxChild.id = "fxsl.scrollBoxChild";
+		this.scrollBoxChild.id = "Fixscroll.scrollBoxChild";
 		this.scrollBoxChild.style.display = "block";
 		this.scrollBoxChild.style.width = this.MIN_LENGTH;
 		this.scrollBoxChild.style.height = this.MIN_LENGTH;
@@ -118,19 +118,19 @@ FixscrollControl = {
 		//canvas
 		//canvasの追加(canvasをそのままappendchildすると拡大されてしまう。
 		this.canvasBox = document.createElement("box");
-		this.canvasBox.id = "fxsl.canvasBox";
+		this.canvasBox.id = "Fixscroll.canvasBox";
 		this.canvasBox.style.minHeight = this.MIN_LENGTH; //parent doesn't know child's style
 		this.canvasBox.style.minWidth = this.MIN_LENGTH; //parent doesn't know child's style
 
 		this.canvas = document.createElementNS("http://www.w3.org/1999/xhtml", "html:canvas");
-		this.canvas.id = "fxsl.canvas";
+		this.canvas.id = "Fixscroll.canvas";
 		this.canvas.height = 1;
 		this.canvas.style.minHeight = this.MIN_LENGTH; //parent doesn't know child's style
 		this.canvasBox.appendChild(this.canvas);
 		
 		//border
 		this.border = document.createElement("box");
-		this.border.id = "fxsl.border";
+		this.border.id = "Fixscroll.border";
 		this.border.top = 0;
 		this.border.left = 0;
 		this.border.width = innerWidth;
@@ -138,7 +138,7 @@ FixscrollControl = {
 		
 		//duplicateArea
 		this.dBox = document.createElement("box");
-		this.dBox.id = "fxsl.duplicateArea";
+		this.dBox.id = "Fixscroll.duplicateArea";
 		this.dBox.top = 0;
 		this.dBox.left = 0;
 		this.dBox.height = this.duplicateHeight;
@@ -155,7 +155,7 @@ FixscrollControl = {
 	observe: function(aSubject, aTopic, aData){
 		if ("nsPref:changed" != aTopic) return;
 		
-		var defaultOn = fxslPref.getBoolPref("extensions.fixscroll.defaultOn");
+		var defaultOn = FixscrollPref.getBoolPref("extensions.fixscroll.defaultOn");
 		//Application.console.log("updateMode:" + defaultOn);
 		
 		//update all flag
@@ -180,7 +180,7 @@ FixscrollControl = {
 		if( this.previousTab && !(this.previousTab === tab) && this.previousTab.isFixscroll ){
 			//previous tab's browser must be initialized.
 			var browser = this.previousTab.linkedBrowser;
-			this.changeOverflow(browser, null);
+			//this.changeOverflow(browser, null); //-> this makes flash to reload. it's not good
 			browser.top = null;
 			browser.left = null;
 			browser.height = null;
@@ -190,7 +190,7 @@ FixscrollControl = {
 
 		//no setting -> use default value
 		if(tab.isFixscroll == undefined){
-			tab.isFixscroll = fxslPref.getBoolPref("extensions.fixscroll.defaultOn");
+			tab.isFixscroll = FixscrollPref.getBoolPref("extensions.fixscroll.defaultOn");
 		}
 
 		//開始済みの時はリサイズする。TODO:他の方法を検討。
@@ -369,7 +369,7 @@ FixscrollControl = {
 		//this lister will vanish when url changes. 
 		browser.contentDocument.documentElement.addEventListener('DOMMouseScroll', this, false);
 		browser.contentDocument.documentElement.addEventListener('keydown', this, false);
-		this.scrollEventOn();
+		browser.contentWindow.addEventListener('scroll', this, false);
 
 		this.fixscroll_hack_browserOn(browser);
 
@@ -389,8 +389,6 @@ FixscrollControl = {
 		this.scrollBoxChild.style.height = maxHeight + height + "px";//height + relationalHeight;
 		this.scrollBoxChild.style.width = maxWidth + width + "px";//width + relationalWidth;
 		//Application.console.log(height + ":::" + maxHeight + "@@@@@" + relationalHeight + "[[" + this.scrollBoxChild.style.height);
-		this.scrollBox.scrollTop = this.fixPosition + this.slidePosition;//scrollbar need fix and slide.
-		this.scrollBox.scrollLeft = this.horizonPosition;
 
 		//for sidebar
 		var stack = this.stack;
@@ -408,6 +406,12 @@ FixscrollControl = {
 		
 		var relationalWidth = width + (hiddenV ? this.SCROLL_WIDTH : 0);
 		var relationalHeight = height + (hiddenH ? this.SCROLL_WIDTH : 0);
+		
+		//retry for scrollbar on/off. If not, it behaves always scrollbar on.
+		this.scrollBoxChild.style.height = maxHeight + relationalHeight + "px";//height + relationalHeight;
+		this.scrollBoxChild.style.width = maxWidth + relationalWidth + "px";//width + relationalWidth;
+		this.scrollBox.scrollTop = this.fixPosition + this.slidePosition;//scrollbar need fix and slide.
+		this.scrollBox.scrollLeft = this.horizonPosition;
 
 		//rewrite
 		this.setBrowserHeight(relationalHeight);
@@ -425,28 +429,22 @@ FixscrollControl = {
 		this.dBox.height = this.duplicateHeight;
 		this.dBox.width = relationalWidth;
 	},
+	
 
 	scrollEventOn: function(){
-		
 		//Application.console.log("scrollEventOn");
 		// to prevent 'scroll' event cyclic.
-		//window.setTimeout( function(){ FixscrollControl._scrollEventOn();},300 );
-		//replace with nsITimer
 		var timer = Components.classes["@mozilla.org/timer;1"].createInstance(Components.interfaces.nsITimer);
 		timer.initWithCallback(function(){
 				if ("undefined" != typeof(FixscrollControl) ){
-					FixscrollControl._scrollEventOn();
+					FixscrollControl.scrollEventFlag = true;
 				}
-			}, 300, Components.interfaces.nsITimer.TYPE_ONE_SHOT);
+			}, 100, Components.interfaces.nsITimer.TYPE_ONE_SHOT);
 	},
-	//cannot call addEventListener in setTimeout;
-	_scrollEventOn: function(){
-		FixscrollControl.browser.contentWindow.addEventListener('scroll', this, false);
-	},
-	
+
 	scrollEventOff: function(){
 		//Application.console.log("scrollEventOff");
-		this.browser.contentWindow.removeEventListener('scroll', this, false);
+		this.scrollEventFlag = false;
 	},
 	
 	////////////////////////////////////////////////////////////////////////////////////
@@ -459,7 +457,7 @@ FixscrollControl = {
 		{
 			case 'DOMMouseScroll':
 				//Application.console.log("c:" + aEvent.currentTarget + ", t:" + aEvent.target + ", o:" + aEvent.originalTarget + ", " + aEvent.originalTarget.nodeName.toLowerCase() + ":"+ aEvent.detail );
-				if(aEvent.ctrlKey && fxslPref.getIntPref("mousewheel.withcontrolkey.action") == 3 ){
+				if(aEvent.ctrlKey && FixscrollPref.getIntPref("mousewheel.withcontrolkey.action") == 3 ){
 					//zoom
 					return ;
 				}
@@ -524,14 +522,16 @@ FixscrollControl = {
 				return;
 			case 'scroll':
 				//Application.console.log("scroll:" + this.browser.contentWindow.scrollY);
+
 				//TODO: 他のやり方を考える
 				//データがないのに、イベント発生していたら、そのイベントを停止する。
 				if(!gBrowser.selectedTab.fixscroll){
 					this.scrollEventOff();
 					return;
 				}
+				
 				//scrollBox
-				if(aEvent.currentTarget.id == "fxsl.scrollBox"){
+				if(aEvent.currentTarget.id == "Fixscroll.scrollBox"){
 					//Application.console.log("scroll:" + this.scrollBox.scrollTop + "," + this.fixPosition);
 					//TODO:本当に変わったときだけ実行したい。
 					//horizontal
@@ -544,6 +544,9 @@ FixscrollControl = {
 					//vertical
 					this.scrollBy(parseInt(this.scrollBox.scrollTop) - this.fixPosition - this.slidePosition);
 				}else{
+					//flag at scroll event on/off.
+					if(!this.scrollEventFlag){	return;	}
+					
 					//browser content
 					var next = parseInt(this.browser.contentWindow.scrollY) - this.fixPosition - this.slidePosition;
 					if(next != 0 && (new Date() - this.scrolledTime > 200)){//time is depend on enviroment. If PC is slow, this time will be more.
@@ -729,18 +732,7 @@ FixscrollControl = {
 			this.fixPosition = nextFixPosition;
 			this.slidePosition = nextSlidePosition;
 			this.displayBrowser();
-			
-			//when scroll last, border style changes.
-			if(maxpos <= nextFixPosition + nextSlidePosition){
-				this.border.classList.remove("borderBox");
-				this.border.classList.add("borderBoxLast");
-			}else{
-				this.border.classList.add("borderBox");
-				this.border.classList.remove("borderBoxLast");
-			}
 		}
-		this.border.hidden = this.isScrollVHidden;
-		this.dBox.hidden = this.isScrollVHidden;
 	},
 	
 	displayBrowser: function(){
@@ -751,6 +743,20 @@ FixscrollControl = {
 		}else{
 			this.fixScrollBrowserUnder();
 		}
+		
+		//when scroll last, border style changes.
+		//Application.console.log("judge Last border:" + this.maxHeight + "," + this.scrollBox.scrollTop);
+		if(this.maxHeight <= this.scrollBox.scrollTop){
+			this.border.classList.remove("borderBox");
+			this.border.classList.add("borderBoxLast");
+		}else{
+			this.border.classList.add("borderBox");
+			this.border.classList.remove("borderBoxLast");
+		}
+		
+		this.border.hidden = this.isScrollVHidden;
+		this.dBox.hidden = this.isScrollVHidden;
+		
 		FixscrollControl.scrollEventOn();
 	},
 	
@@ -860,11 +866,11 @@ FixscrollControl = {
 		//if property is same, do nothing
 		if(browser.style.overflow != _overflow){
 			browser.style.overflow = _overflow;
-			//FIXME: this way makes flash reload.
+			//FIXME: this way makes flash reload. FIXed it @Firefox 10.0.
 			//redisplay -> work
-			browser.hidden = true;
-			browser.getBoundingClientRect();//I don't know why it needs.
-			browser.hidden = null;
+			//browser.hidden = true;
+			//browser.getBoundingClientRect();//I don't know why it needs.
+			//browser.hidden = null;
 		}
 	},
 	
@@ -881,8 +887,8 @@ FixscrollControl = {
 	
 	//getter
 	get isExcludedUrl(){
-		var excludeUrls = fxslPref.getCharPref("extensions.fixscroll.excludeUrls")
-						+ ";" + fxslPref.getCharPref("extensions.fixscroll.mustExcludeUrls");//ex) about:config
+		var excludeUrls = FixscrollPref.getCharPref("extensions.fixscroll.excludeUrls")
+						+ ";" + FixscrollPref.getCharPref("extensions.fixscroll.mustExcludeUrls");//ex) about:config
 
 		var url = window.content.location.href;
 		//Application.console.log(url + ":" + excludeUrls);
@@ -909,9 +915,9 @@ FixscrollControl = {
 	},
 	
 	get fontsize(){
-		var language = fxslPref.getCharPref("general.useragent.locale");
+		var language = FixscrollPref.getCharPref("general.useragent.locale");
 		try{
-			return fxslPref.getIntPref("font.size.variable." + language);
+			return FixscrollPref.getIntPref("font.size.variable." + language);
 		}catch(e){}
 		//FIX ME. load default font size
 		return 16;
@@ -930,7 +936,7 @@ FixscrollControl = {
 	},
 	
 	get cursorValue(){
-		var cursor = fxslPref.getIntPref("extensions.fixscroll.kb.cursor");
+		var cursor = FixscrollPref.getIntPref("extensions.fixscroll.kb.cursor");
 		if(cursor == 0){
 			return this.fontsize;
 		}
@@ -938,14 +944,14 @@ FixscrollControl = {
 	},
 	
 	get pageValue(){
-		var page = fxslPref.getIntPref("extensions.fixscroll.kb.pageUpDown");
+		var page = FixscrollPref.getIntPref("extensions.fixscroll.kb.pageUpDown");
 		if(page == 0){
 			return this.pageHeight/2;
 		}
 		return page;
 	},
 	get pageHeight(){ return this._innerHeight - this.fontsize - this.duplicateHeight; },
-	get _duplicateHeight(){ return fxslPref.getIntPref("extensions.fixscroll.duplicateHeight"); },
+	get _duplicateHeight(){ return FixscrollPref.getIntPref("extensions.fixscroll.duplicateHeight"); },
 	get isFixScrollModeOn(){ return gBrowser.selectedTab.isFixscroll; },
 	get isScrollVHidden(){ //Application.console.log(this.scrollBox.scrollHeight + ":::" + this.scrollBox.clientHeight);
 	return this.scrollBox.scrollHeight <= this.scrollBox.clientHeight; },
@@ -1007,7 +1013,7 @@ var fixscrollPrefObserver =
 {
   register: function()
   {
-    this._branch = fxslPref.getBranch("extensions.fixscroll.");
+    this._branch = FixscrollPref.getBranch("extensions.fixscroll.");
     this._branch.QueryInterface(Components.interfaces.nsIPrefBranch2);
     this._branch.addObserver("", this, false);
   },

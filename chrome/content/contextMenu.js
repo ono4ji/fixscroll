@@ -51,26 +51,11 @@ FixscrollControl.hereToTop = function(diffY, startX, startY){
 	Components.utils.import('resource://fixscroll-modules/animationManager.js', this.ns);
 	this.ns.animationManager.removeAllTasks();
 
+	//I think it's not important to smooth scroll at first ajustment.
 	if( borderPosition <= diffY ){
-		//under the border
-		var task = function(aTime, aBeginningValue, aTotalChange, aDuration) {
-			var dmove = (aTime / aDuration * aTotalChange);
-			var v = dmove - (this.prevPosition ? this.prevPosition : 0);
-			this.prevPosition = dmove;
-			FixscrollControl.fixPosition += v; //allow over limit. -> diffY scroll recovery 
-			return aTime > aDuration;
-		};
-		this.ns.animationManager.addTask(task, 0, -borderPosition, 250);
+		FixscrollControl.fixPosition += -borderPosition;
 	}else{
-		//over the border
-		var task = function(aTime, aBeginningValue, aTotalChange, aDuration) {
-			var dmove = (aTime / aDuration * aTotalChange);
-			var v = dmove - (this.prevPosition ? this.prevPosition : 0);
-			this.prevPosition = dmove;
-			FixscrollControl.scrollBy( v , false);
-			return aTime > aDuration;
-		};
-		this.ns.animationManager.addTask(task, 0, windowHeight - borderPosition, 250);
+		FixscrollControl.scrollBy( windowHeight - borderPosition , false);
 	}
 	
 	//open panel

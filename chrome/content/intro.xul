@@ -59,7 +59,7 @@ function go()
 	
 	// open main pref dialog
 	if (document.getElementById("openPrefs").checked) 
-		window.openDialog("chrome://fixscroll/content/options.xul", "fixscrollPrefs", "chrome=yes,dialog=yes,resizable=yes");
+		window.openDialog("chrome://fixscroll/content/options.xul", "fixscrollPrefs", "chrome=yes,dialog=yes,resizable=yes,centerscreen");
 }
 ]]>
 </script>
