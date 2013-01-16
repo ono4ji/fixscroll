@@ -41,7 +41,7 @@
     <em:id>fixscroll@developer.com</em:id>
     <em:type>2</em:type>
     <em:name>FixScroll</em:name>
-    <em:version>1.0.20120911</em:version>
+    <em:version>1.01.20130117</em:version>
     <em:optionsURL>chrome://fixscroll/content/options.xul</em:optionsURL>
     <em:homepageURL>http://d.hatena.ne.jp/ono4ji/</em:homepageURL>
     <em:iconURL>chrome://fixscroll/skin/icon.png</em:iconURL>
@@ -64,7 +64,7 @@
       <Description>
         <em:id>{ec8030f7-c20a-464f-9b0e-13a3a9e97384}</em:id> <!-- Firefox -->
         <em:minVersion>4.0</em:minVersion>
-        <em:maxVersion>16.*</em:maxVersion>
+        <em:maxVersion>19.*</em:maxVersion>
       </Description>
     </em:targetApplication>
   </Description>

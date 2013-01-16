@@ -1011,10 +1011,24 @@ FixscrollControl = {
 		//Fixscroll manage "browserStack".
 		var notifi = this.notificationBox;
 		if(notifi){
-			for(var i=0; i< notifi.children.length;i++){
-				if("browserStack" == notifi.children[i].getAttribute("anonid")){
-					return notifi.children[i];
+			//FF18+ : attribute change @ annonid -> class & DOM root change @ notificationBox->browserSidebarContainer->browserContainer->browserStack
+			var search = function(life, node){
+				for(var i=0; i< node.children.length;i++){
+					var child = node.children[i];
+					if("browserStack" == child.getAttribute("class")){
+						return child;
+					}else if(life > 0){
+						var result = search(life-1, child);
+						if(result){
+							return result;
+						}
+					}
 				}
+				return null;
+			}
+			var ff18 = search(3, notifi);
+			if(ff18){
+				return ff18;
 			}
 			//FF15+ is different dom trees from FF14-
 			//notificationBox->browserContainer->browserStack
@@ -1028,9 +1042,16 @@ FixscrollControl = {
 					}
 				}
 			}
-			//must not happen
-			return notifi.children[0];
+			
+			// older version
+			for(var i=0; i< notifi.children.length;i++){
+				if("browserStack" == notifi.children[i].getAttribute("anonid")){
+					return notifi.children[i];
+				}
+			}
 		}
+		// if new version breaks, log at console.
+		Application.console.log("Fixscroll log: This firefox version changes DOM node around xul:browser.");
 		return null;
 	},
 	
