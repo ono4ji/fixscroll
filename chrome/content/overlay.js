@@ -1,6 +1,7 @@
 if ("undefined" == typeof(FixscrollPref) 
 	&& "undefined" == typeof(FixscrollData) 
 	&& "undefined" == typeof(FixscrollControl)
+	&& "undefined" == typeof(FixscrollUrlObserver)
 	) {
 
 const FixscrollPref = Components.classes["@mozilla.org/preferences-service;1"].getService(Components.interfaces.nsIPrefService).getBranch(null);;
@@ -64,6 +65,7 @@ FixscrollControl = {
 		tab.isFixscroll = FixscrollPref.getBoolPref("extensions.fixscroll.defaultOn");
 		
 		this.startStop(true);
+		FixscrollUrlObserver.init();
 	},
 	
 	onUnload: function(){
@@ -77,6 +79,7 @@ FixscrollControl = {
 		FixscrollPref.removeObserver("extensions.fixscroll.defaultOn", this);
 
 		this.fixscroll_hack_unload();
+		FixscrollUrlObserver.uninit();
 	},
 	
 	initElement: function(){
@@ -86,15 +89,15 @@ FixscrollControl = {
 
 		//for resize tabbrowser(Anything under or over tabbrowser content appear and resize by splitter.)
 		//TODO: it can't make tabbrowser big.
-		var resizeBox = document.createElement("browser");
-		resizeBox.id = "Fixscroll.resizeBox";
-		resizeBox.setAttribute("disablehistory",true);//stop error NS_ERROR_FAILURE.
-		resizeBox.width = 0;
-		resizeBox.style.maxWidth = 0;
+		this.resizeBox = document.createElement("browser");
+		this.resizeBox.id = "Fixscroll.resizeBox";
+		this.resizeBox.setAttribute("disablehistory",true);//stop error NS_ERROR_FAILURE.
+		this.resizeBox.width = 0;
+		this.resizeBox.style.maxWidth = 0;
 		var br = document.getElementById("browser");
 		var sb = document.getElementById("sidebar-box");
-		br.insertBefore(resizeBox, sb);
-		resizeBox.addEventListener("resize", function(){FixscrollControl.onResize();} ,false);
+		br.insertBefore(this.resizeBox, sb);
+		this.resizeBox.addEventListener("resize", function(){FixscrollControl.onResize();} ,false);
 		
 		//scrollbox
 		this.scrollBox = document.createElement("vbox");
@@ -274,9 +277,11 @@ FixscrollControl = {
 		if(!isExcludedUrl)
 			browser.removeEventListener("pageshow", this, false);
 
-		//addlister by init();
-		browser.contentDocument.documentElement.removeEventListener('DOMMouseScroll', this, false);
-		browser.contentDocument.documentElement.removeEventListener('keydown', this, false);
+		//remove listner by init();
+		if(browser.contentDocument.documentElement){
+			browser.contentDocument.documentElement.removeEventListener('DOMMouseScroll', this, false);
+			browser.contentDocument.documentElement.removeEventListener('keydown', this, false);
+		}
 		this.scrollEventOff();
 
 		//element revert
@@ -367,14 +372,14 @@ FixscrollControl = {
 		//Application.console.log("last_max" + maxHeight + ",height" + height + ", browser.contentWindow.scrollMaxY" + browser.contentWindow.scrollMaxY + ",browser.height" + browser.height);
 
 		//this lister will vanish when url changes. 
-		browser.contentDocument.documentElement.addEventListener('DOMMouseScroll', this, false);
-		browser.contentDocument.documentElement.addEventListener('keydown', this, false);
+		if(browser.contentDocument.documentElement){
+			browser.contentDocument.documentElement.addEventListener('DOMMouseScroll', this, false);
+			browser.contentDocument.documentElement.addEventListener('keydown', this, false);
+		}
 		browser.contentWindow.addEventListener('scroll', this, false);
 
 		this.fixscroll_hack_browserOn(browser);
 
-		//スクロールがない場合は全面browserにする。
-		if( this.isScrollVHidden ){ this.isBrowserOver = true; }
 		this.displayBrowser();
 		
 		this.initLast();
@@ -507,11 +512,27 @@ FixscrollControl = {
 				if(this.isExcludedUrl){
 					this.stop(true);
 					return;
-				}else{
-					this.startStop();
 				}
-				//var tab = gBrowser.selectedTab;
-				//if(! (tab.isFixscroll && tab.fixscroll) ) return;
+				//Application.console.log("pageshow: " + window.content.location.href);
+				//this.onNewPage();
+				//exclude url for fixscroll
+				if(this.isExcludedUrl){
+					this.stop(true);
+					return;
+				}
+				
+				//except the same url
+				if(this.url == window.content.location.href){
+					this.init(this._innerWidth, this._innerHeight);
+					return;
+				}else{
+					this.url = window.content.location.href;
+				}
+				//Application.console.log("pageshow: event go!");
+				
+				this.startStop();
+				
+				//read current browser position
 				this.fixPosition = this.browser.contentWindow.scrollY;
 				this.slidePosition = 0;
 				this.horizonPosition = this.browser.contentWindow.scrollX;
@@ -556,6 +577,29 @@ FixscrollControl = {
 				}
 				return;
 		}
+	},
+
+	onNewPage: function(){
+		var tab = gBrowser.selectedTab;
+		if(! (tab.isFixscroll && tab.fixscroll) ) return;
+		
+		//exclude url for fixscroll
+		if(this.isExcludedUrl){
+			this.stop(true);
+			return;
+		}
+		
+		this.startStop();
+		
+		//read current browser position
+		//Application.console.log("tukkomi: " + this.browser.contentWindow.scrollYFix);
+		this.fixPosition = this.browser.contentWindow.scrollY;
+		this.slidePosition = 0;
+		this.horizonPosition = this.browser.contentWindow.scrollX;
+		this.scrollBox.scrollTop = this.fixPosition;
+		this.scrollBox.scrollLeft = this.horizonPosition;
+		
+		this.init(this._innerWidth, this._innerHeight);
 	},
 
 	onKeydown: function(aEvent){
@@ -675,6 +719,7 @@ FixscrollControl = {
 	scrollBy: function(length, altKey){
 		//Application.console.log("scrollBy:" + length);
 		//update scrolled time.
+		if(length == 0) return;
 		this.scrolledTime = new Date();
 		var maxpos = parseInt(this.scrollBox.scrollHeight);
 		var nextSlidePosition = this.slidePosition;
@@ -881,7 +926,7 @@ FixscrollControl = {
 	},
 	
 	updateToolbar: function(on){
-		var cu = document.getElementById("fixscroll-toolbar-button");
+		var cu = document.getElementById("fixscroll-toolbar-innerbutton");
 		if(cu) cu.setAttribute("fixscrollOn",on);
 	},
 	
@@ -971,8 +1016,20 @@ FixscrollControl = {
 					return notifi.children[i];
 				}
 			}
+			//FF15+ is different dom trees from FF14-
+			//notificationBox->browserContainer->browserStack
+			for(var i=0; i< notifi.children.length;i++){
+				if("browserContainer" == notifi.children[i].getAttribute("anonid")){
+					var container = notifi.children[i];
+					for(var j=0; j < container.children.length;j++){
+						if("browserStack" == container.children[j].getAttribute("anonid")){
+							return container.children[j];
+						}
+					}
+				}
+			}
 			//must not happen
-			return notifi.childNode[0];
+			return notifi.children[0];
 		}
 		return null;
 	},
@@ -1037,6 +1094,38 @@ var fixscrollPrefObserver =
 }
 fixscrollPrefObserver.register();
 */
+
+var FixscrollUrlObserver ={
+	// nsIWebProgress interface
+	urlBarListener: {
+		QueryInterface: function(aIID) {
+			if (aIID.equals(Ci.nsIWebProgressListener) ||
+				aIID.equals(Ci.nsISupportsWeakReference) ||
+				aIID.equals(Ci.nsISupports))
+				return this;
+		},
+
+		// current tab documentURI changes
+		onLocationChange: function(aProgress, aRequest, aUri) {
+			//Application.console.log("FixscrollUrlObserver:" + window.content.location.href);
+			FixscrollControl.onNewPage();
+		},
+
+		onStateChange : function(aWebProgress, aRequest, aStateFlags, aStatus) {},
+		onProgressChange: function() {},
+		onSecurityChange: function() {},
+		onLinkIconAvailable: function() {}
+	},
+	// init progress listener
+	init: function() {
+		gBrowser.addTabsProgressListener(FixscrollUrlObserver.urlBarListener, Ci.nsIWebProgress.NOTIFY_STATE_DOCUMENT);
+	},
+
+	// remove progress listener
+	uninit: function() {
+		gBrowser.removeTabsProgressListener(FixscrollUrlObserver.urlBarListener);
+	},
+};
 
 // The following is modified from Marc Boullet's All-in-one Gestures extension
 FixscrollControl.findNodeToScroll = function (initialNode){

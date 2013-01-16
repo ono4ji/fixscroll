@@ -19,6 +19,9 @@ if ("undefined" != typeof(FixscrollControl) ) {
 FixscrollControl.test = function(){
 	Application.console.log("test start");
 	
+    window.open("chrome://fixscroll/content/test.xul",
+      "canvas_splitter",
+      "chrome,centerscreen,resizable");
 	return;
 	
 	/*
